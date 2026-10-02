@@ -1,0 +1,2638 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧪 원소 카드 배틀 v0.21</title>
+<style>
+  :root{
+    --bg:#151a24; --panel:#1e2532; --ink:#e4e8f0; --ink-soft:#98a2b8; --line:#2e3646;
+    --me:#5b9bf7; --me-soft:#22344f; --en:#f4757a; --en-soft:#3d2530;
+    --gold:#f5c344; --hp:#4ade80;
+    --shadow:0 2px 8px rgba(0,0,0,.28), 0 1px 3px rgba(0,0,0,.24);
+    --shadow-lg:0 10px 28px rgba(0,0,0,.42);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); min-height:100vh; padding:14px; user-select:none;
+  }
+  #app{ max-width:1040px; margin:0 auto; }
+  h1{ font-size:38px; text-align:center; letter-spacing:-.5px; }
+  button{ font-family:inherit; cursor:pointer; border:none; }
+  .btn-primary{ background:var(--me); color:#fff; border-radius:12px; padding:13px 30px; font-size:16px; font-weight:800; box-shadow:var(--shadow); transition:transform .08s, box-shadow .15s; }
+  .btn-primary:hover{ box-shadow:var(--shadow-lg); }
+  .btn-primary:active{ transform:scale(.97); }
+  .btn-danger{ background:var(--en); color:#fff; border-radius:11px; padding:10px 20px; font-size:14px; font-weight:800; box-shadow:var(--shadow); }
+  .btn-active{ background:#fb923c; color:#2a1400; border-radius:11px; padding:10px 20px; font-size:14px; font-weight:800; box-shadow:var(--shadow); }
+  .btn-active:active{ transform:scale(.97); }
+  .btn-ghost{ background:var(--panel); color:var(--ink); border:1.5px solid var(--line); border-radius:11px; padding:11px 20px; font-size:14px; font-weight:700; }
+  .btn-locked{ background:transparent; color:var(--ink-soft); border:1.5px dashed var(--line); border-radius:11px; padding:11px 20px; font-size:14px; font-weight:700; opacity:.7; }
+  .lobby-menu{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:4px; }
+  .lobby-menu .menu-main .btn-primary{ font-size:17px; padding:14px 34px; }
+  .lobby-menu .menu-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn-ghost:hover{ border-color:#c3cad6; }
+  .btn-disabled{ background:#e6e9f0; color:#a6adbd; border-radius:12px; padding:13px 30px; font-size:16px; font-weight:800; cursor:not-allowed; }
+  .hidden{ display:none !important; }
+
+  /* ---------- 튜토리얼 ---------- */
+  #tutorial{ text-align:center; padding-top:8px; }
+  .slide-card{ background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:30px 22px; max-width:480px; margin:18px auto; min-height:330px; display:flex; flex-direction:column; justify-content:center; box-shadow:var(--shadow); }
+  .slide-emoji{ font-size:62px; margin-bottom:16px; }
+  .slide-title{ font-size:23px; font-weight:800; margin-bottom:12px; color:var(--me); }
+  .slide-body{ font-size:15.5px; line-height:1.75; color:#c4cbdb; }
+  .slide-visual{ font-size:25px; margin:16px 0 0; line-height:1.5; background:#151a24; border-radius:12px; padding:14px; }
+  .dots{ display:flex; gap:8px; justify-content:center; margin:16px 0; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#cfd6e2; transition:background .2s; }
+  .dot.active{ background:var(--me); }
+  .tut-nav{ display:flex; gap:10px; justify-content:center; }
+
+  /* ---------- 타이틀 ---------- */
+  .subtitle{ color:var(--ink-soft); margin:8px 0 26px; font-size:15px; }
+  .owned-box{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; max-width:560px; margin:0 auto 22px; text-align:left; box-shadow:var(--shadow); }
+  .owned-box b{ font-size:15px; }
+  .chips{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; justify-content:center; }
+
+  /* ---------- 전투 레이아웃 ---------- */
+  .zone{ border-radius:16px; padding:10px 12px; transition:box-shadow .3s, background .3s; position:relative; }
+  .zone.en{ background:#191f2b; }
+  .zone.me{ background:#191f2b; }
+  .zone.active-en{ box-shadow:0 0 0 2.5px var(--en), 0 0 20px rgba(244,117,122,.35); background:#241a20; }
+  .zone.active-me{ box-shadow:0 0 0 2.5px var(--me), 0 0 20px rgba(91,155,247,.35); background:#1a2436; }
+
+  .pbar{ display:flex; align-items:center; gap:12px; padding:4px 4px 8px; }
+  .pbar .who{ font-weight:800; min-width:44px; font-size:15px; }
+  .pbar .who.en{ color:var(--en); }
+  .pbar .who.me{ color:var(--me); }
+  .hpwrap{ flex:1; height:24px; background:#0e121a; border-radius:12px; overflow:hidden; position:relative; box-shadow:inset 0 1px 2px rgba(0,0,0,.3); }
+  .hpfill{ height:100%; border-radius:12px; transition:width .5s cubic-bezier(.22,1,.36,1); }
+  .hpfill.hit{ animation:hpflash .4s; }
+  @keyframes hpflash{ 0%{ filter:brightness(1.7); } 100%{ filter:brightness(1); } }
+  .hptext{ position:absolute; inset:0; text-align:center; font-size:13px; line-height:24px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6); }
+  .stat-mini{ font-size:13px; font-weight:700; }
+  .stat-mini.e{ color:var(--gold); }
+  .stat-mini.d{ color:var(--ink-soft); }
+
+  .field-label{ font-size:11.5px; color:var(--ink-soft); margin:2px 0 4px; font-weight:600; }
+  .stage-bar{ display:flex; align-items:center; justify-content:space-between; font-size:14px; font-weight:800; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:8px 14px; margin-bottom:10px; box-shadow:var(--shadow); }
+  .exit-btn{ background:transparent; color:var(--ink-soft); border:1px solid var(--line); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; }
+  .exit-btn:hover{ color:var(--en); border-color:var(--en); }
+  .field-row{ display:flex; gap:10px; min-height:132px; align-items:center; flex-wrap:wrap; }
+  .field-row.poison-fog{ background:rgba(74,222,128,.14); border-radius:12px; box-shadow:inset 0 0 20px rgba(74,222,128,.18); }
+  .empty{ color:#aab2c2; font-size:13px; font-style:italic; padding:36px 10px; }
+
+  .mid{ text-align:center; padding:6px 0; position:relative; min-height:20px; }
+
+  /* ---------- 카드 (주기율표 칸 스타일) ---------- */
+  .card{
+    width:92px; height:120px; border-radius:12px; background:var(--panel);
+    border:1px solid var(--line); position:relative; transition:transform .12s, box-shadow .2s, border-color .2s;
+    box-shadow:var(--shadow); overflow:visible; display:flex; flex-direction:column; flex-shrink:0;
+  }
+  .card .band{ height:6px; width:100%; border-radius:11px 11px 0 0; }
+  .card .inner{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px; position:relative; background:var(--panel); overflow:hidden; }
+  .card .topfill{ position:absolute; top:0; left:0; right:0; height:56px; opacity:.55; pointer-events:none; }
+  .card .num{ position:absolute; top:3px; left:6px; font-size:10px; color:#c4cbdb; font-weight:800; z-index:1; }
+  .card .sym{ font-size:30px; font-weight:900; line-height:1; letter-spacing:-1px; color:#f4f7fc; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.4); }
+  .card .nm{ font-size:11px; color:#d3d9e6; font-weight:700; margin-top:2px; z-index:1; }
+  .card .pv{ font-size:8px; color:#9aa4ba; font-weight:600; line-height:1.15; margin-top:3px; min-height:19px; text-align:center; padding:0 2px; z-index:1; }
+  .card .stats{ display:flex; justify-content:space-between; padding:4px 7px; border-top:1px solid rgba(255,255,255,.08); background:#171d28; border-radius:0 0 11px 11px; }
+  .card .atk{ color:#ff9d6b; font-weight:900; font-size:14px; }
+  .card .atk.buff{ color:#ffcb47; }
+  .card .hp{ color:#5ee89a; font-weight:900; font-size:14px; }
+  .card .cost{ position:absolute; top:-7px; right:-7px; width:26px; height:26px; border-radius:50%; background:var(--gold); color:#3a2c00; font-size:13px; font-weight:900; line-height:26px; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,.18); z-index:2; }
+  .card .cost.reduced{ background:var(--hp); color:#04240f; }
+  .card .taunt{ position:absolute; top:-8px; left:-6px; font-size:17px; z-index:2; filter:drop-shadow(0 1px 2px rgba(0,0,0,.2)); }
+  .card .battery-badge{ position:absolute; top:-8px; left:-8px; background:#fbbf24; color:#3a2c00; font-size:11px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .card .laststand-badge{ position:absolute; top:-8px; left:-8px; font-size:15px; z-index:2; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+  .card .rad-badge{ position:absolute; top:-8px; right:-8px; background:#a3e635; color:#1a2e05; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .card .tag{ font-size:8px; font-weight:800; color:#dbe0ea; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.55); padding:2px 7px; border-radius:8px; white-space:nowrap; }
+
+  /* 하단 고정 능력 툴팁 (카드 위치와 무관, 절대 안 잘림) */
+  #hovertip{ position:fixed; bottom:16px; left:50%; transform:translateX(-50%) translateY(10px); max-width:90vw; background:#0e1420; border:1.5px solid var(--line); border-radius:12px; padding:11px 18px; box-shadow:var(--shadow-lg); z-index:130; opacity:0; visibility:hidden; transition:opacity .15s, transform .15s; pointer-events:none; display:flex; flex-direction:column; gap:3px; align-items:center; text-align:center; }
+  #hovertip.show{ opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+  #hovertip .ht-name{ font-size:14px; font-weight:800; color:#f4f7fc; }
+  #hovertip .ht-name.active{ color:#fb923c; }
+  #hovertip .ht-desc{ font-size:12.5px; color:#c4cbdb; line-height:1.45; }
+
+  .card.ready{ border-color:var(--me); cursor:pointer; box-shadow:0 0 0 2px var(--me), 0 0 14px rgba(91,155,247,.45), var(--shadow); transform:translateY(-2px); }
+  .card.ready:hover{ transform:translateY(-6px); box-shadow:0 0 0 2px var(--me), 0 0 20px rgba(91,155,247,.6), var(--shadow-lg); }
+  .card.selected{ border-color:var(--gold); box-shadow:0 0 0 3px var(--gold), 0 0 18px rgba(245,195,68,.55), var(--shadow-lg); transform:translateY(-6px); }
+  .card.targetable{ border-color:var(--en); cursor:pointer; box-shadow:0 0 0 2px var(--en), 0 0 14px rgba(244,117,122,.45), var(--shadow); }
+  .card.targetable-heal{ border-color:var(--hp); cursor:pointer; box-shadow:0 0 0 2px var(--hp), 0 0 14px rgba(74,222,128,.45), var(--shadow); }
+  .card.targetable-heal:hover{ transform:translateY(-4px); }
+  .card.targetable:hover{ transform:translateY(-4px); box-shadow:0 0 0 2px var(--en), 0 0 20px rgba(244,117,122,.6), var(--shadow-lg); }
+  .card.dim{ opacity:.5; filter:grayscale(.55) brightness(.72); transform:translateY(2px); }
+  .card.affordable{ cursor:pointer; }
+  .card.affordable:hover{ transform:translateY(-6px); box-shadow:var(--shadow-lg); }
+  .card.notafford{ opacity:.45; filter:grayscale(.5) brightness(.7); }
+
+  .hand-wrap{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:10px 12px; margin-top:12px; box-shadow:var(--shadow); }
+  .hand-scroll{ display:flex; gap:10px; overflow-x:auto; padding:8px 6px; min-height:140px; align-items:center; }
+  .hand-scroll::-webkit-scrollbar{ height:8px; }
+  .hand-scroll::-webkit-scrollbar-thumb{ background:#cfd6e2; border-radius:4px; }
+  .center{ text-align:center; }
+  .controls{ display:flex; justify-content:center; gap:10px; margin-top:14px; }
+
+  #log{ margin-top:14px; height:96px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:12px; color:var(--ink-soft); line-height:1.6; box-shadow:var(--shadow); }
+  #log div{ padding:1px 0; }
+
+  /* ---------- 큰 이펙트 메시지 ---------- */
+  #fx-layer{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:100; }
+  .fx{ font-size:46px; font-weight:900; letter-spacing:-1px; padding:16px 34px; border-radius:18px; background:rgba(30,37,50,.95); box-shadow:var(--shadow-lg); opacity:0; transform:scale(.7); }
+  .fx.show{ animation:fxpop .9s cubic-bezier(.2,1.2,.3,1) forwards; }
+  @keyframes fxpop{
+    0%{ opacity:0; transform:scale(.6) translateY(10px); }
+    18%{ opacity:1; transform:scale(1.05) translateY(0); }
+    72%{ opacity:1; transform:scale(1); }
+    100%{ opacity:0; transform:scale(.96) translateY(-14px); }
+  }
+
+  .toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:#0b0f17; color:#fff; border:1px solid var(--line); padding:11px 20px; border-radius:22px; font-size:13.5px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:120; box-shadow:var(--shadow-lg); }
+  .toast.show{ opacity:.95; }
+
+  /* ---------- 승패 ---------- */
+  #result{ text-align:center; padding-top:44px; }
+  #result h1{ font-size:52px; }
+  .reward-box{ background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:22px; max-width:320px; margin:22px auto; box-shadow:var(--shadow); }
+  .reward-choices{ display:flex; gap:16px; justify-content:center; margin:24px auto; flex-wrap:wrap; }
+  .reward-pick{ background:var(--panel); border:2px solid var(--line); border-radius:16px; padding:18px; cursor:pointer; transition:transform .12s, border-color .2s, box-shadow .2s; }
+  .reward-pick:hover{ transform:translateY(-6px); border-color:var(--gold); box-shadow:0 0 0 2px var(--gold), var(--shadow-lg); }
+  .reward-desc{ font-size:10.5px; color:var(--ink-soft); margin-top:6px; max-width:120px; line-height:1.4; }
+  .ver{ text-align:center; color:#aab2c2; font-size:11px; margin-top:10px; }
+  .save-status{ text-align:center; font-size:11px; margin-top:4px; color:var(--ink-soft); }
+  .settings-box{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px 20px; max-width:400px; margin:20px auto; box-shadow:var(--shadow); }
+
+  /* ===== 뽑기 ===== */
+  .gacha-currency{ display:flex; gap:20px; justify-content:center; margin:16px 0; font-size:14px; color:#5eead4; }
+  .unlock-banner{ background:linear-gradient(135deg, #1a2436, #241a20); border:2px solid #fbbf24; border-radius:14px; padding:16px 20px; max-width:420px; margin:14px auto; font-size:15px; font-weight:800; color:#fbbf24; line-height:1.5; box-shadow:0 0 16px rgba(251,191,36,.3); }
+  /* 튜토리얼 안내창 */
+  #tuto-guide{ position:fixed; left:50%; top:14px; transform:translateX(-50%); width:min(92vw,560px); background:#0e1420; border:2px solid var(--me); border-radius:14px; padding:14px 16px 12px; z-index:150; box-shadow:0 0 24px rgba(91,155,247,.4); }
+  /* 보스 화면깨짐 */
+  #boss-glitch{ position:fixed; inset:0; z-index:300; background:#000; display:flex; align-items:center; justify-content:center; animation:glitch-flicker .2s steps(2) infinite; }
+  #boss-glitch .glitch-text{ font-size:28px; font-weight:900; color:#a3e635; text-shadow:3px 0 #ff003c, -3px 0 #00fff9; animation:glitch-shake .15s infinite; text-align:center; }
+  @keyframes glitch-flicker{ 0%{opacity:1;} 50%{opacity:.6;} 100%{opacity:1;} }
+  @keyframes glitch-shake{ 0%{transform:translate(0);} 25%{transform:translate(-4px,2px);} 50%{transform:translate(4px,-2px);} 75%{transform:translate(-2px,-3px);} 100%{transform:translate(2px,3px);} }
+  #tuto-guide .tuto-text{ font-size:14.5px; color:#e4e8f0; line-height:1.6; text-align:center; }
+  #tuto-guide .tuto-text b{ color:#7fb3ff; }
+  #tuto-guide .tuto-skip{ display:block; margin:10px auto 0; background:transparent; color:var(--ink-soft); border:1px solid var(--line); border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; }
+  .gacha-currency b{ color:#fff; }
+  .gacha-box{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; max-width:400px; margin:0 auto; box-shadow:var(--shadow); }
+  /* 친구 대결 */
+  .code-box{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; max-width:400px; margin:16px auto; box-shadow:var(--shadow); }
+  /* 스테이지 맵 */
+  .stage-map{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:460px; margin:18px auto; }
+  .map-cell{ position:relative; width:80px; height:80px; border-radius:14px; background:var(--panel); border:2px solid var(--line); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:transform .12s, border-color .2s; box-shadow:var(--shadow); }
+  .map-cell:hover{ transform:translateY(-4px); border-color:var(--me); }
+  .map-cell.cleared{ border-color:var(--hp); }
+  .map-cell.boss{ border-color:#a3e635; background:linear-gradient(135deg,#1a2410,#241a20); }
+  .map-cell.locked{ opacity:.4; cursor:not-allowed; border-style:dashed; }
+  .map-cell .map-num{ font-size:24px; font-weight:900; }
+  .map-cell .map-label{ font-size:10px; color:var(--ink-soft); margin-top:2px; }
+  .map-cell .map-check{ position:absolute; top:-6px; right:-6px; background:var(--hp); color:#06281a; font-size:12px; font-weight:900; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .code-text{ font-size:26px; font-weight:900; letter-spacing:3px; color:#a78bfa; background:#0e1420; border-radius:10px; padding:14px; word-break:break-all; }
+  .code-input{ width:100%; font-size:22px; font-weight:800; letter-spacing:2px; text-align:center; text-transform:uppercase; padding:14px; border-radius:10px; border:2px solid var(--line); background:#0e1420; color:#a78bfa; box-sizing:border-box; }
+  .code-input:focus{ outline:none; border-color:#a78bfa; }
+  .ace-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:14px 0; }
+  .ace-pick{ position:relative; cursor:pointer; border-radius:12px; padding:4px; transition:transform .12s; }
+  .ace-pick:hover{ transform:translateY(-3px); }
+  .ace-pick.on{ box-shadow:0 0 0 3px #fbbf24, 0 0 14px rgba(251,191,36,.5); border-radius:12px; }
+  .ace-star{ position:absolute; top:-8px; right:-4px; font-size:18px; z-index:2; }
+  .win-cert{ background:linear-gradient(135deg,#1a1830,#2a1a30); border:2px solid #a78bfa; border-radius:16px; padding:20px; max-width:400px; margin:16px auto; box-shadow:0 0 20px rgba(167,139,250,.3); }
+  .win-deck{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  #gacha-anim{ position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:200; cursor:pointer; overflow:hidden; }
+  .proton-counter{ position:fixed; top:24px; left:24px; font-size:36px; font-weight:900; color:#fb923c; z-index:210; }
+  .proton-field{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .proton{ position:absolute; width:16px; height:16px; border-radius:50%; left:50%; top:50%; box-shadow:0 0 8px currentColor; animation:proton-in .6s ease-in forwards; }
+  @keyframes proton-in{
+    0%{ transform:translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))); opacity:0; }
+    30%{ opacity:1; }
+    100%{ transform:translate(-50%,-50%); opacity:.95; }
+  }
+  .proton-core{ position:absolute; font-size:80px; font-weight:900; opacity:0; z-index:205; }
+  .proton-core.show{ animation:core-pop .5s cubic-bezier(.2,1.4,.3,1) forwards; }
+  @keyframes core-pop{ 0%{opacity:0;transform:scale(.3);} 100%{opacity:1;transform:scale(1);} }
+  .gacha-skip{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); font-size:13px; color:var(--ink-soft); }
+  /* 빛기둥 (냥코식) */
+  .light-pillar{ position:absolute; left:50%; bottom:50%; transform:translateX(-50%); width:0; height:0; opacity:0; z-index:203; border-radius:40px; }
+  .light-pillar.rise{ animation:pillar-rise .9s ease-out forwards; }
+  @keyframes pillar-rise{
+    0%{ width:0; height:0; opacity:0; }
+    40%{ width:80px; height:70vh; opacity:.9; }
+    100%{ width:120px; height:75vh; opacity:1; }
+  }
+  /* 팡 터짐 번쩍 */
+  .gacha-flash{ position:fixed; inset:0; opacity:0; z-index:204; pointer-events:none; }
+  .gacha-flash.burst{ animation:flash-burst .5s ease-out forwards; }
+  @keyframes flash-burst{ 0%{opacity:0;} 15%{opacity:.85;} 100%{opacity:0;} }
+  /* 화면 흔들림 */
+  #gacha-anim.shake{ animation:screen-shake .4s; }
+  @keyframes screen-shake{
+    0%,100%{ transform:translate(0,0); }
+    20%{ transform:translate(-8px,4px); }
+    40%{ transform:translate(8px,-4px); }
+    60%{ transform:translate(-6px,-4px); }
+    80%{ transform:translate(6px,4px); }
+  }
+  .set-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; font-size:15px; font-weight:600; }
+  .set-divider{ height:1px; background:var(--line); margin:6px 0; }
+  .toggle{ background:#3a4250; color:#c4cbdb; border-radius:20px; padding:7px 18px; font-size:13px; font-weight:800; }
+  .toggle.on{ background:var(--me); color:#fff; }
+
+  /* ===== 도감 ===== */
+  .dex-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .dex-title{ font-size:20px; font-weight:800; }
+  .dex-counter{ font-size:14px; font-weight:800; color:var(--ink-soft); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 12px; }
+  .dex-counter.ok{ color:var(--hp); border-color:var(--hp); }
+  .dex-layout{ display:flex; gap:14px; align-items:flex-start; }
+  .dex-grid{ flex:1; display:grid; grid-template-columns:repeat(18, 1fr); gap:2px; }
+  .dex-empty{ aspect-ratio:1; }
+  .dex-gap{ grid-column:1/-1; height:4px; }
+  .dex-cell{ aspect-ratio:1; background:var(--panel); border:1px solid var(--line); border-radius:4px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+  .dex-cell.locked{ opacity:.28; }
+  .dex-cell.owned{ cursor:pointer; box-shadow:var(--shadow); }
+  .dex-cell.owned:hover{ transform:scale(1.12); z-index:5; box-shadow:var(--shadow-lg); }
+  .dex-cell.picked{ border-color:var(--gold); box-shadow:0 0 0 2px var(--gold); }
+  .dex-num{ font-size:6px; color:var(--ink-soft); position:absolute; top:1px; left:2px; }
+  .dex-sym{ font-size:12px; font-weight:800; color:var(--ink); }
+  .dex-check{ position:absolute; bottom:0; right:1px; font-size:8px; color:var(--gold); font-weight:900; }
+  .dex-side{ width:220px; flex-shrink:0; }
+  .dex-hint{ background:var(--panel); border:1px dashed var(--line); border-radius:12px; padding:30px 16px; text-align:center; color:var(--ink-soft); font-size:13px; line-height:1.6; }
+  .dex-save-row{ margin-top:14px; text-align:center; }
+
+  .dd-card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:0 0 14px; overflow:hidden; box-shadow:var(--shadow); }
+  .dd-band{ height:8px; }
+  .dd-head{ display:flex; align-items:center; gap:12px; padding:14px 14px 8px; }
+  .dd-sym{ font-size:36px; font-weight:900; color:var(--ink); }
+  .dd-name{ font-size:16px; font-weight:800; }
+  .dd-num{ font-size:12px; color:var(--ink-soft); }
+  .dd-stat{ padding:6px 14px; font-size:14px; font-weight:700; color:var(--ink); }
+  .dd-skill{ margin:6px 14px; padding:10px; background:#0e1420; border-radius:10px; font-size:12px; color:#c4cbdb; line-height:1.5; }
+  .dd-desc{ margin:6px 14px 0; padding:10px; background:#12200f; border-radius:10px; font-size:12.5px; color:#bfe3b0; line-height:1.5; }
+  .dd-card button{ margin-left:14px; margin-right:14px; }
+
+  @media (max-width:720px){
+    .dex-layout{ flex-direction:column; }
+    .dex-side{ width:100%; }
+  }
+
+  /* 원소 칩 (타이틀/도감용) */
+  .chip{ display:flex; flex-direction:column; align-items:center; width:64px; }
+  .chip .mini{ width:56px; height:66px; border-radius:9px; background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column; }
+  .chip .mini .mband{ height:5px; }
+  .chip .mini .msym{ flex:1; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:900; color:#f4f7fc; }
+  .chip .mlabel{ font-size:11px; color:#c4cbdb; margin-top:4px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="fx-layer"></div>
+<div id="hovertip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 원소 카드 배틀 v0.21 — 밝은 테마 디자인 개편
+// 로직은 v0.4 그대로 / 겉모습·이펙트·턴표시·화면크기 개선
+// ============================================================
+
+// ---------- 족(group)별 파스텔 색 ----------
+const GROUP_COLORS = {
+  "비활성기체":  { band:"#a78bfa", fill:"#a78bfa", glow:"rgba(167,139,250,.4)" },
+  "할로겐":      { band:"#f87171", fill:"#f87171", glow:"rgba(248,113,113,.4)" },
+  "산소족":      { band:"#fb7185", fill:"#fb7185", glow:"rgba(251,113,133,.4)" },
+  "질소족":      { band:"#4ade80", fill:"#4ade80", glow:"rgba(74,222,128,.4)" },
+  "탄소족":      { band:"#94a3b8", fill:"#94a3b8", glow:"rgba(148,163,184,.4)" },
+  "전이금속":    { band:"#fbbf24", fill:"#fbbf24", glow:"rgba(251,191,36,.4)" },
+  "1족":         { band:"#38bdf8", fill:"#38bdf8", glow:"rgba(56,189,248,.4)" },
+  "알칼리금속":  { band:"#fb923c", fill:"#fb923c", glow:"rgba(251,146,60,.4)" },
+  "알칼리토금속":{ band:"#facc15", fill:"#facc15", glow:"rgba(250,204,21,.4)" },
+  "붕소족":      { band:"#5eead4", fill:"#5eead4", glow:"rgba(94,234,212,.4)" },
+  "악티늄족":    { band:"#a3e635", fill:"#a3e635", glow:"rgba(163,230,53,.5)" },
+};
+
+// ---------- 원소 도감 ----------
+const ELEMENTS = {
+  H:  { symbol:"H",  name:"수소", number:1,  group:"1족",     cost:1, atk:1, hp:2,
+        passive:null,
+        flavor:"우주에서 제일 가벼운 원소. 싸게 세우는 최소한의 벽." },
+  O:  { symbol:"O",  name:"산소", number:8,  group:"산소족",   cost:2, atk:2, hp:3,
+        passive:{ kind:"allyAtkUp", value:1, short:"연소 지원", label:"내 다른 원소의 공격력을 1 높여줘요" },
+        flavor:"연소를 도와 불을 키운다. 옆 아군의 공격을 올려준다." },
+  N:  { symbol:"N",  name:"질소", number:7,  group:"질소족",   cost:2, atk:1, hp:4,
+        passive:{ kind:"shield", value:1, short:"신선 보존", label:"아군 카드가 받는 피해를 1 줄여줘요" },
+        flavor:"공기의 78%, 반응을 잘 안 해 보존에 쓰인다. 아군을 지킨다." },
+  C:  { symbol:"C",  name:"탄소", number:6,  group:"탄소족",   cost:3, atk:1, hp:3,
+        passive:{ kind:"costDown", value:1, short:"탄소 촉매", label:"다른 카드의 소환 비용을 1 줄여줘요 (최소 1)" },
+        flavor:"생명과 다이아몬드의 원소. 다른 원소를 더 싸게 불러온다." },
+  Fe: { symbol:"Fe", name:"철",   number:26, group:"전이금속", cost:3, atk:3, hp:4,
+        passive:{ kind:"taunt", value:1, short:"자석 방패", label:"적의 공격을 대신 맞아 아군을 지켜줘요" },
+        flavor:"자석에 붙는 금속. 앞장서서 아군을 대신 막아준다." },
+  Au: { symbol:"Au", name:"금",   number:79, group:"전이금속", cost:4, atk:3, hp:6,
+        passive:{ kind:"immune", value:["독","부식"], short:"부식·독 면역", label:"독과 부식 공격을 무시해요" },
+        flavor:"안 녹슬고 안 변하는 금속. 독·부식을 무시하는 방어벽." },
+  Na: { symbol:"Na", name:"소듐", number:11, group:"알칼리금속", cost:3, atk:2, hp:3,
+        passive:null,
+        active:{ kind:"aoe", value:2, energy:3, short:"물 폭발", label:"에너지 3을 써서 상대 전체에 2 피해를 줘요" },
+        flavor:"물에 닿으면 격렬하게 폭발한다. 상대 전체를 휩쓴다." },
+  Cl: { symbol:"Cl", name:"염소", number:17, group:"할로겐", cost:4, atk:1, hp:4,
+        passive:null,
+        active:{ kind:"poison", value:1, energy:3, short:"독가스", label:"에너지 3을 써서 독안개를 퍼뜨려요. 염소가 살아있는 동안 상대 전체가 매 턴 1씩 아파요" },
+        flavor:"퍼지는 독가스가 상대를 서서히 중독시킨다." },
+  He: { symbol:"He", name:"헬륨", number:2, group:"비활성기체", cost:1, atk:0, hp:2,
+        passive:{ kind:"lastStand", value:1, short:"불활성", label:"쓰러질 만한 공격을 받아도 딱 한 번은 체력 1로 버텨요" },
+        flavor:"반응을 거의 안 하는 안정된 기체. 한 번은 끄떡없이 버틴다." },
+  Li: { symbol:"Li", name:"리튬", number:3, group:"알칼리금속", cost:3, atk:2, hp:3,
+        passive:null,
+        active:{ kind:"battery", value:1, energy:0, short:"방출", label:"충전한 에너지를 모두 방출해요 (2턴마다 1씩 충전, 최대 3). 한 번 쓰면 더는 충전되지 않아요" },
+        flavor:"배터리의 원소. 에너지를 모았다가 필요할 때 방출한다." },
+  Mg: { symbol:"Mg", name:"마그네슘", number:12, group:"알칼리토금속", cost:5, atk:3, hp:5,
+        passive:null,
+        active:{ kind:"stun", value:1, energy:6, short:"섬광", label:"에너지 6으로 눈부신 빛을 터뜨려, 상대 카드 전체가 다음 턴 공격하지 못해요. 한 번만 쓸 수 있어요" },
+        flavor:"타오르면 눈부시게 빛난다. 섬광으로 상대 전체의 눈을 멀게 한다." },
+  Ca: { symbol:"Ca", name:"칼슘", number:20, group:"알칼리토금속", cost:4, atk:2, hp:4,
+        passive:{ kind:"boneUp", value:1, short:"뼈 강화", label:"등장할 때, 체력이 가장 높은 다른 아군의 최대·현재 체력을 1 올려줘요" },
+        flavor:"뼈와 이의 원소. 든든한 아군을 더 단단하게 만든다." },
+  K:  { symbol:"K", name:"포타슘", number:19, group:"알칼리금속", cost:3, atk:1, hp:3,
+        passive:null,
+        active:{ kind:"heal", value:1, energy:2, short:"회복", label:"에너지 2로 아군 하나의 체력을 1 회복해요. 매 턴 쓸 수 있어요" },
+        flavor:"바나나에 많은 영양의 원소. 아군의 체력을 회복시킨다." },
+  P:  { symbol:"P", name:"인", number:15, group:"질소족", cost:4, atk:3, hp:1,
+        passive:null,
+        active:{ kind:"blast", value:9, energy:5, short:"발화", label:"에너지 5로 상대 하나에게 9의 강한 피해를 줘요. 한 번만 쓸 수 있어요" },
+        flavor:"성냥처럼 확 타오른다. 한 방은 강하지만 몸은 유리처럼 약하다." },
+  Al: { symbol:"Al", name:"알루미늄", number:13, group:"붕소족", cost:2, atk:2, hp:3,
+        passive:null,
+        flavor:"가볍고 흔한 금속. 어디에나 무난하게 쓸 수 있다." },
+  Hg: { symbol:"Hg", name:"수은", number:80, group:"전이금속", cost:4, atk:3, hp:4,
+        passive:{ kind:"infiltrate", value:1, short:"침투", label:"액체처럼 방어를 뚫어요. 상대 카드가 막고 있어도 본체를 직접 칠 수 있어요" },
+        flavor:"흐르는 액체 금속. 방어벽 사이로 스며들어 본체를 노린다." },
+  U:  { symbol:"U", name:"우라늄", number:92, group:"악티늄족", cost:4, atk:1, hp:4,
+        passive:{ kind:"radiation", value:2, turns:2, short:"방사능 오염", label:"부딪힌 상대(때리거나 맞은 카드)가 방사능에 오염돼 매 턴 2씩 2턴 아파요. 그 전에 죽으면 남은 피해가 본체로!" },
+        flavor:"방사능을 내뿜는 원소. 스치기만 해도 서서히 무너진다." },
+};
+const STARTER = ["H","O","N","C","Fe","Au","Na","Cl","He","Li","Mg","Ca","K","P","Al","Hg","U"];
+
+// ===== 도감용 전체 118원소 데이터: [번호,기호,이름,row,col,설명] =====
+const DEX = [
+  [1,"H","수소",1,1,"우주에서 가장 흔하고 가벼운 원소라, 적은 에너지로 낼 수 있어요"],
+  [2,"He","헬륨",1,18,"반응을 거의 안 하는 안정된 기체라, 한 번은 끄떡없이 버텨요"],
+  [3,"Li","리튬",2,1,"배터리에 쓰이는 원소라, 에너지를 모았다가 방출해요"],
+  [4,"Be","베릴륨",2,2,"가볍고 단단한 금속이에요"],
+  [5,"B","붕소",2,13,"세제나 유리를 만들 때 쓰여요"],
+  [6,"C","탄소",2,14,"다른 물질의 변화를 돕는 성질이 있어, 다른 원소를 부를 때 에너지를 아껴줘요"],
+  [7,"N","질소",2,15,"과자 봉지에 넣어 과자를 지켜주듯, 아군을 보호해줘요"],
+  [8,"O","산소",2,16,"불을 활활 타오르게 하듯, 옆의 원소가 더 세게 공격하게 해줘요"],
+  [9,"F","플루오린",2,17,"치약에 들어가 이를 튼튼하게 해요"],
+  [10,"Ne","네온",2,18,"간판 불빛에 쓰이는 기체예요"],
+  [11,"Na","소듐",3,1,"물에 닿으면 터지는 성질이라, 상대 전체를 폭발로 공격해요"],
+  [12,"Mg","마그네슘",3,2,"타오르면 눈부시게 빛나는 금속이라, 섬광으로 상대 전체를 눈멀게 해요"],
+  [13,"Al","알루미늄",3,13,"가볍고 흔한 금속이라, 어디에나 무난하게 쓸 수 있어요"],
+  [14,"Si","규소",3,14,"컴퓨터 반도체의 재료예요"],
+  [15,"P","인",3,15,"성냥처럼 확 타오르는 원소라, 한 방은 강하지만 몸은 약해요"],
+  [16,"S","황",3,16,"노란색이고 화약에 쓰여요"],
+  [17,"Cl","염소",3,17,"독가스처럼 퍼지는 성질이라, 상대 전체를 서서히 중독시켜요"],
+  [18,"Ar","아르곤",3,18,"반응을 안 하는 안전한 기체예요"],
+  [19,"K","포타슘",4,1,"바나나에 많은 영양 원소라, 아군의 체력을 회복시켜줘요"],
+  [20,"Ca","칼슘",4,2,"뼈와 이의 원소라, 든든한 아군을 더 튼튼하게 만들어줘요"],
+  [21,"Sc","스칸듐",4,3,"가벼운 운동 장비에 쓰여요"],
+  [22,"Ti","타이타늄",4,4,"가볍고 아주 튼튼한 금속이에요"],
+  [23,"V","바나듐",4,5,"강철을 더 단단하게 만들어요"],
+  [24,"Cr","크로뮴",4,6,"반짝이는 도금에 쓰이는 금속이에요"],
+  [25,"Mn","망가니즈",4,7,"강철을 만들 때 넣는 금속이에요"],
+  [26,"Fe","철",4,8,"자석이 철에 달라붙듯, 적의 공격도 철에게 끌려와 대신 맞아줘요"],
+  [27,"Co","코발트",4,9,"파란색 물감에 쓰이는 금속이에요"],
+  [28,"Ni","니켈",4,10,"동전에 쓰이는 금속이에요"],
+  [29,"Cu","구리",4,11,"전선에 쓰이는 붉은 금속이에요"],
+  [30,"Zn","아연",4,12,"철이 녹슬지 않게 도와줘요"],
+  [31,"Ga","갈륨",4,13,"손 위에서 녹는 신기한 금속이에요"],
+  [32,"Ge","저마늄",4,14,"반도체에 쓰이는 원소예요"],
+  [33,"As","비소",4,15,"독이 있는 위험한 원소예요"],
+  [34,"Se","셀레늄",4,16,"몸에 조금 필요한 원소예요"],
+  [35,"Br","브로민",4,17,"실온에서 액체인 붉은 원소예요"],
+  [36,"Kr","크립톤",4,18,"특수 전등에 쓰이는 기체예요"],
+  [37,"Rb","루비듐",5,1,"아주 잘 반응하는 금속이에요"],
+  [38,"Sr","스트론튬",5,2,"빨간 불꽃놀이를 만드는 원소예요"],
+  [39,"Y","이트륨",5,3,"LED와 화면에 쓰여요"],
+  [40,"Zr","지르코늄",5,4,"보석처럼 반짝이는 금속이에요"],
+  [41,"Nb","나이오븀",5,5,"강한 자석을 만드는 데 쓰여요"],
+  [42,"Mo","몰리브데넘",5,6,"강철을 튼튼하게 하는 금속이에요"],
+  [43,"Tc","테크네튬",5,7,"병원 검사에 쓰이는 원소예요"],
+  [44,"Ru","루테늄",5,8,"전자제품에 쓰이는 금속이에요"],
+  [45,"Rh","로듐",5,9,"아주 비싸고 반짝이는 금속이에요"],
+  [46,"Pd","팔라듐",5,10,"자동차 배기가스를 줄여줘요"],
+  [47,"Ag","은",5,11,"반짝이고 거울에 쓰이는 금속이에요"],
+  [48,"Cd","카드뮴",5,12,"충전지에 쓰이는 금속이에요"],
+  [49,"In","인듐",5,13,"터치스크린에 쓰이는 원소예요"],
+  [50,"Sn","주석",5,14,"통조림 캔을 코팅하는 금속이에요"],
+  [51,"Sb","안티모니",5,15,"불에 잘 안 타게 도와줘요"],
+  [52,"Te","텔루륨",5,16,"태양전지에 쓰이는 원소예요"],
+  [53,"I","아이오딘",5,17,"상처 소독약에 쓰이는 원소예요"],
+  [54,"Xe","제논",5,18,"자동차 밝은 전조등에 쓰여요"],
+  [55,"Cs","세슘",6,1,"아주 정확한 시계에 쓰여요"],
+  [56,"Ba","바륨",6,2,"병원 엑스레이 검사에 쓰여요"],
+  [57,"La","란타넘",9,4,"카메라 렌즈에 쓰이는 원소예요"],
+  [58,"Ce","세륨",9,5,"라이터 돌에 쓰이는 원소예요"],
+  [59,"Pr","프라세오디뮴",9,6,"강한 자석을 만드는 원소예요"],
+  [60,"Nd","네오디뮴",9,7,"아주 센 자석을 만드는 원소예요"],
+  [61,"Pm","프로메튬",9,8,"빛을 내는 야광에 쓰여요"],
+  [62,"Sm","사마륨",9,9,"자석에 쓰이는 원소예요"],
+  [63,"Eu","유로퓸",9,10,"화면의 빨간색을 내는 원소예요"],
+  [64,"Gd","가돌리늄",9,11,"병원 검사에 쓰이는 원소예요"],
+  [65,"Tb","터븀",9,12,"초록빛을 내는 원소예요"],
+  [66,"Dy","디스프로슘",9,13,"자석을 튼튼하게 하는 원소예요"],
+  [67,"Ho","홀뮴",9,14,"강한 자기장을 만드는 원소예요"],
+  [68,"Er","어븀",9,15,"광섬유 통신에 쓰이는 원소예요"],
+  [69,"Tm","툴륨",9,16,"휴대용 엑스레이에 쓰여요"],
+  [70,"Yb","이터븀",9,17,"정밀한 시계에 쓰이는 원소예요"],
+  [71,"Lu","루테튬",9,18,"암 검사에 쓰이는 원소예요"],
+  [72,"Hf","하프늄",6,4,"원자로에 쓰이는 금속이에요"],
+  [73,"Ta","탄탈럼",6,5,"휴대폰 부품에 쓰이는 금속이에요"],
+  [74,"W","텅스텐",6,6,"전구 필라멘트에 쓰이는 금속이에요"],
+  [75,"Re","레늄",6,7,"제트엔진에 쓰이는 금속이에요"],
+  [76,"Os","오스뮴",6,8,"가장 무거운 금속 중 하나예요"],
+  [77,"Ir","이리듐",6,9,"아주 단단한 금속이에요"],
+  [78,"Pt","백금",6,10,"보석과 반지에 쓰이는 귀한 금속이에요"],
+  [79,"Au","금",6,11,"녹슬지도 변하지도 않아서, 독과 부식 공격이 안 통해요"],
+  [80,"Hg","수은",6,12,"흐르는 액체 금속이라, 방어를 뚫고 본체를 직접 노려요"],
+  [81,"Tl","탈륨",6,13,"예전에 쓰였던 위험한 원소예요"],
+  [82,"Pb","납",6,14,"무겁고 방사선을 막는 금속이에요"],
+  [83,"Bi","비스무트",6,15,"무지개색을 내는 금속이에요"],
+  [84,"Po","폴로늄",6,16,"방사선을 내는 위험한 원소예요"],
+  [85,"At","아스타틴",6,17,"아주 드문 방사성 원소예요"],
+  [86,"Rn","라돈",6,18,"땅에서 나오는 방사성 기체예요"],
+  [87,"Fr","프랑슘",7,1,"매우 드문 방사성 금속이에요"],
+  [88,"Ra","라듐",7,2,"빛을 내는 방사성 원소예요"],
+  [89,"Ac","악티늄",10,4,"강한 방사선을 내는 원소예요"],
+  [90,"Th","토륨",10,5,"미래 원자력 연료로 연구돼요"],
+  [91,"Pa","프로트악티늄",10,6,"드문 방사성 원소예요"],
+  [92,"U","우라늄",10,7,"방사능을 내뿜는 원소라, 스치기만 해도 상대가 서서히 아파요"],
+  [93,"Np","넵투늄",10,8,"우라늄에서 만들어지는 원소예요"],
+  [94,"Pu","플루토늄",10,9,"원자력에 쓰이는 원소예요"],
+  [95,"Am","아메리슘",10,10,"화재경보기에 쓰이는 원소예요"],
+  [96,"Cm","퀴륨",10,11,"우주탐사선 전력에 쓰여요"],
+  [97,"Bk","버클륨",10,12,"실험실에서 만든 원소예요"],
+  [98,"Cf","캘리포늄",10,13,"금속 탐지에 쓰이는 원소예요"],
+  [99,"Es","아인슈타이늄",10,14,"실험실에서 만든 드문 원소예요"],
+  [100,"Fm","페르뮴",10,15,"실험실에서만 만들어지는 원소예요"],
+  [101,"Md","멘델레븀",10,16,"주기율표를 만든 학자 이름이에요"],
+  [102,"No","노벨륨",10,17,"노벨상에서 이름을 딴 원소예요"],
+  [103,"Lr","로렌슘",10,18,"실험실에서 만든 무거운 원소예요"],
+  [104,"Rf","러더포듐",7,4,"실험실에서 만든 원소예요"],
+  [105,"Db","더브늄",7,5,"실험실에서 만든 원소예요"],
+  [106,"Sg","시보귬",7,6,"실험실에서 만든 원소예요"],
+  [107,"Bh","보륨",7,7,"실험실에서 만든 원소예요"],
+  [108,"Hs","하슘",7,8,"실험실에서 만든 원소예요"],
+  [109,"Mt","마이트너륨",7,9,"실험실에서 만든 원소예요"],
+  [110,"Ds","다름슈타튬",7,10,"실험실에서 만든 원소예요"],
+  [111,"Rg","뢴트게늄",7,11,"엑스선을 발견한 학자 이름이에요"],
+  [112,"Cn","코페르니슘",7,12,"천문학자 코페르니쿠스 이름이에요"],
+  [113,"Nh","니호늄",7,13,"일본에서 만든 원소예요"],
+  [114,"Fl","플레로븀",7,14,"실험실에서 만든 원소예요"],
+  [115,"Mc","모스코븀",7,15,"실험실에서 만든 원소예요"],
+  [116,"Lv","리버모륨",7,16,"실험실에서 만든 원소예요"],
+  [117,"Ts","테네신",7,17,"실험실에서 만든 원소예요"],
+  [118,"Og","오가네손",7,18,"가장 무거운 원소예요"],
+];
+const DEX_MAP = {}; DEX.forEach(d=>{ DEX_MAP[d[1]] = {number:d[0], symbol:d[1], name:d[2], row:d[3], col:d[4], desc:d[5]}; });
+function gColor(el){ return GROUP_COLORS[el.group] || {band:"#94a3b8", fill:"#94a3b8", glow:"rgba(148,163,184,.4)"}; }
+
+// ---------- 상수 ----------
+const START_HP = 25, MAX_ENERGY = 6, HAND_MAX = 10, FIELD_MAX = 5, START_HAND = 4, MAX_COPIES = 3;
+
+// ---------- 상태 ----------
+let UID = 1; const uid = () => UID++;
+let owned = ["H","O","N","C"];  // 철은 튜토리얼 클리어 보상
+let deckKeys = null;   // 플레이어가 짠 덱 (원소 key 배열). null이면 자동덱
+let mole = 0;          // 뽑기 화폐 (코인)
+let crystal = 0;       // 에너지 결정
+let gachaUnlocked = false;  // 뽑기 잠금해제 (첫 승리 후)
+let clearedStages = {};     // 각 스테이지 클리어 여부 (첫 클리어 vs 반복 구분)
+let gachaCount = 0;         // 뽑기 횟수 (첫 2번 새 원소 확정용)
+let showLog = false;        // 전투 로그 표시 (기본 숨김)
+let tutoStep = 0;           // 튜토리얼 진행 단계 (0=튜토 아님)
+let tutoDone = false;       // 튜토리얼 완료 여부 (저장)
+
+// ============================================================
+// 덱 공유 코드 시스템 (암호 방식: 덱이 안 보이는 짧은 코드)
+// ============================================================
+// 원소 6종 + 에이스를 숫자로 바꿔 뒤섞은 뒤 문자로 → 알아볼 수 없는 코드
+// 원소 기호를 고정 순서 배열의 인덱스로 (이 배열 순서만 유지하면 코드 안정)
+const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U"];
+// 코드에 쓸 문자 (헷갈리는 0 O 1 I L 뺌)
+const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 30자
+const CODE_SCRAMBLE = 7; // 뒤섞기용 값
+
+// 덱(원소 key 6개) + 에이스 → 암호 코드
+function encodeDeck(keys, aceKey){
+  const idxs = keys.map(k=>CODE_ELEMENTS.indexOf(k)).filter(i=>i>=0);
+  if(idxs.length===0) return "";
+  const aceIdx = aceKey ? CODE_ELEMENTS.indexOf(aceKey) : 30; // 에이스 없으면 30(=없음 표시)
+  // 6종 정렬(순서 감춤) 후 각 인덱스를 뒤섞어 문자로
+  const sorted = [...idxs].sort((a,b)=>a-b);
+  let nums = sorted.map(i => (i + CODE_SCRAMBLE) % CODE_CHARS.length);
+  // 에이스도 뒤섞어 추가
+  nums.push((aceIdx + CODE_SCRAMBLE) % CODE_CHARS.length);
+  // 체크섬 (잘못된 코드 거르기)
+  const sum = idxs.reduce((a,b)=>a+b,0) + aceIdx;
+  nums.push(sum % CODE_CHARS.length);
+  // 숫자들을 문자로
+  return nums.map(n=>CODE_CHARS[n]).join("");
+}
+
+// 암호 코드 → { keys, aceKey } 또는 null(잘못된 코드)
+function decodeDeck(code){
+  if(!code || typeof code !== "string") return null;
+  code = code.trim().toUpperCase().replace(/\s/g,"");
+  if(code.length < 3) return null; // 최소 원소1 + 에이스 + 체크섬
+  // 문자를 숫자로
+  const nums = [];
+  for(const c of code){
+    const n = CODE_CHARS.indexOf(c);
+    if(n < 0) return null; // 문자표에 없는 글자 = 잘못된 코드
+    nums.push(n);
+  }
+  const checksum = nums.pop();     // 마지막 = 체크섬
+  const aceScr = nums.pop();       // 그 앞 = 에이스
+  // 원소 인덱스 복원 (뒤섞기 역연산)
+  const idxs = nums.map(n => (n - CODE_SCRAMBLE + CODE_CHARS.length) % CODE_CHARS.length);
+  for(const i of idxs){ if(i < 0 || i >= CODE_ELEMENTS.length) return null; }
+  // 에이스 복원
+  let aceIdx = (aceScr - CODE_SCRAMBLE + CODE_CHARS.length) % CODE_CHARS.length;
+  let aceKey = null;
+  if(aceIdx !== 30){
+    if(aceIdx < 0 || aceIdx >= CODE_ELEMENTS.length) return null;
+    aceKey = CODE_ELEMENTS[aceIdx];
+  }
+  // 체크섬 검증
+  const sum = (idxs.reduce((a,b)=>a+b,0) + aceIdx) % CODE_CHARS.length;
+  if(sum !== checksum) return null; // 잘못된 코드
+  const keys = idxs.map(i=>CODE_ELEMENTS[i]);
+  return { keys, aceKey };
+}
+const GACHA_COST = 500;
+const CRYSTAL_FOR_ELEMENT = 10;
+const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500 };  // 첫 클리어 코인 (우상향)
+const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500 }; // 반복 (첫의 1/3, 50단위)
+let reward = null, G = null, logs = [], busy = false;
+let sel = { hand:null, attacker:null, mode:null }; // mode: 'attack' | 'active'
+let stage = 1;        // '가': 지금 하는 판 (전투 시작이 따라감, 맵에서 고르면 바뀜)
+let maxStage = 1;     // '나': 진행도 (내가 도달한 가장 높은 단계, 안 깎임)
+const DECK_TYPES = 6;   // 덱에 담는 종류 수
+const DECK_COPIES = 3;  // 종류당 장수
+
+// ---------- 스테이지 설정 ----------
+// deck: 봇이 쓰는 원소 / hp: 봇 본체 체력 / miss: 봇 실수 확률 / reward: 클리어 보상
+const STAGES = {
+  1:  { hp:15, deck:["H","C","N","O","Fe","Au"],           miss:0.60, reward:["Au"], label:"스테이지 1" },
+  2:  { hp:20, deck:["H","N","O","Fe","Au","Na"],          miss:0.45, reward:["Na"], label:"스테이지 2" },
+  3:  { hp:20, deck:["H","N","O","Na","Cl","Au"],          miss:0.40, reward:["Cl"], label:"스테이지 3" },
+  4:  { hp:25, deck:["He","N","O","K","Cl","Fe"],          miss:0.35, reward:null,  label:"스테이지 4" },
+  5:  { hp:25, deck:["Li","O","Na","P","Ca","Fe"],         miss:0.25, reward:null,  label:"스테이지 5" },
+  6:  { hp:30, deck:["He","N","Mg","K","Ca","Au"],         miss:0.25, reward:null,  label:"스테이지 6" },
+  7:  { hp:30, deck:["N","O","Na","Cl","Fe","Hg"],         miss:0.20, reward:null,  label:"스테이지 7" },
+  8:  { hp:30, deck:["H","Li","N","O","Mg","K"],           miss:0.20, reward:null,  label:"스테이지 8" },
+  9:  { hp:30, deck:["Fe","Au","O","P","Mg","N"],          miss:0.20, reward:null,  label:"스테이지 9" },
+  10: { hp:35, deck:["Au","O","Hg","P","Na","U"],          miss:0.15, reward:null,  label:"스테이지 10 · 보스", boss:true },
+};
+const MAX_STAGE = 10;
+// 보스 2페이즈 설정
+const BOSS_PHASE2 = { hp:30, deck:["U","Hg","P","Mg","Cl","Au"], miss:0.13 };
+
+// ---------- 유틸 ----------
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+function makeCard(key){ const e=ELEMENTS[key]; return { iid:uid(), key, ...e, curHp:e.hp, maxHp:e.hp, canAttack:false, hasAttacked:false }; }
+function buildDeck(keys){ const d=[]; keys.forEach(k=>{ const c=ELEMENTS[k].cost; const copies=c<=2?3:2; for(let i=0;i<Math.min(copies,MAX_COPIES);i++) d.push(k); }); return shuffle(d.map(makeCard)); }
+
+// 플레이어가 실제로 쓸 덱 종류 결정
+function activeDeckKeys(){
+  // 짠 덱이 있고 정확히 6종류면 그걸 사용
+  if(deckKeys && deckKeys.length===DECK_TYPES) return deckKeys;
+  // 아니면 보유 원소로 자동 (6개 이하일 때)
+  return owned.slice(0, DECK_TYPES);
+}
+// 플레이어 덱: 각 종류 3장씩
+function buildPlayerDeck(){
+  const keys = activeDeckKeys();
+  const d=[];
+  keys.forEach(k=>{ for(let i=0;i<DECK_COPIES;i++) d.push(k); });
+  return shuffle(d.map(makeCard));
+}
+// 덱 짜기가 필요한 상태인지 (7개 이상인데 6종류 덱을 안 짬)
+function needsDeck(){
+  return owned.length > DECK_TYPES && !(deckKeys && deckKeys.length===DECK_TYPES);
+}
+function log(m){ logs.push(m); if(logs.length>50) logs=logs.slice(-50); const el=document.getElementById("log"); if(el){ el.innerHTML=logs.map(l=>`<div>${l}</div>`).join(""); el.scrollTop=el.scrollHeight; } }
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1400); }
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+
+// ---------- 효과음 (Web Audio로 생성, 파일 불필요) ----------
+let soundOn = false;
+let useOldNames = false;  // false=소듐/포타슘(새), true=나트륨/칼륨(옛)
+// 옛 이름 매핑 (새 이름 → 옛 이름)
+const OLD_NAMES = { "소듐":"나트륨", "포타슘":"칼륨" };
+// 설정에 맞는 원소 이름 반환
+function elName(name){
+  if(useOldNames && OLD_NAMES[name]) return OLD_NAMES[name];
+  return name;
+}
+let audioCtx = null;
+function initAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx=null; }
+  }
+}
+// freq: 음높이, dur: 길이(초), type: 파형, vol: 볼륨
+function beep(freq, dur, type="sine", vol=0.15){
+  if(!soundOn) return;
+  initAudio();
+  if(!audioCtx) return;
+  try{
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  }catch(e){}
+}
+// 상황별 효과음
+const SFX = {
+  summon(){ beep(523, 0.12, "triangle", 0.18); },          // 소환: 밝은 띵
+  attack(){ beep(330, 0.08, "square", 0.12); setTimeout(()=>beep(220,0.08,"square",0.12),60); }, // 공격: 탁탁
+  hit(){ beep(160, 0.15, "sawtooth", 0.12); },             // 피해: 둔탁
+  pierce(){ beep(140, 0.2, "sawtooth", 0.16); },           // 관통: 더 둔탁
+  poison(){ beep(200,0.3,"sine",0.1); setTimeout(()=>beep(160,0.3,"sine",0.1),150); }, // 독: 스산
+  explode(){ beep(120,0.35,"sawtooth",0.2); },             // 폭발: 쿵
+  win(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.2,"triangle",0.18),i*130)); }, // 승리: 도미솔도
+  lose(){ [392,330,262].forEach((f,i)=>setTimeout(()=>beep(f,0.3,"triangle",0.15),i*180)); },     // 패배: 하강
+  click(){ beep(440,0.05,"sine",0.1); },                   // 버튼: 딸깍
+};
+
+// ---------- 저장 시스템 (localStorage) ----------
+const SAVE_KEY = "elementCardBattle_save";
+let saveAvailable = false;
+(function checkSave(){
+  try{
+    const t = "__test__";
+    localStorage.setItem(t, "1");
+    localStorage.removeItem(t);
+    saveAvailable = true;
+  }catch(e){ saveAvailable = false; }
+})();
+
+function saveGame(){
+  if(!saveAvailable) return;
+  try{
+    const data = { owned, deckKeys, stage, maxStage, soundOn, useOldNames, mole, crystal, gachaUnlocked, clearedStages, gachaCount, showLog, tutoDone, v:1 };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  }catch(e){}
+}
+function loadGame(){
+  if(!saveAvailable) return false;
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(data.owned) owned = data.owned;
+    if(data.deckKeys !== undefined) deckKeys = data.deckKeys;
+    if(data.stage) stage = data.stage;
+    if(data.maxStage) maxStage = data.maxStage; else maxStage = stage;
+    if(!STAGES[stage]) stage = 1;  // 범위 벗어난 저장값 방어
+    if(data.soundOn !== undefined) soundOn = data.soundOn;
+    if(data.mole !== undefined) mole = data.mole;
+    if(data.crystal !== undefined) crystal = data.crystal;
+    if(data.gachaUnlocked !== undefined) gachaUnlocked = data.gachaUnlocked;
+    if(data.clearedStages !== undefined) clearedStages = data.clearedStages;
+    if(data.gachaCount !== undefined) gachaCount = data.gachaCount;
+    if(data.showLog !== undefined) showLog = data.showLog;
+    if(data.tutoDone !== undefined) tutoDone = data.tutoDone;
+    if(data.useOldNames !== undefined) useOldNames = data.useOldNames;
+    return true;
+  }catch(e){ return false; }
+}
+function clearSave(){
+  if(!saveAvailable) return;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+}
+
+// 큰 이펙트 메시지 (최신 것만 표시 - 새 이펙트가 오면 이전 것 즉시 교체)
+let fxTimer = null;
+function fx(text, color){
+  const layer=document.getElementById("fx-layer");
+  if(!layer) return;
+  layer.innerHTML = "";           // 이전 이펙트 즉시 제거 (안 밀림)
+  if(fxTimer) clearTimeout(fxTimer);
+  const d=document.createElement("div");
+  d.className="fx show"; d.textContent=text;
+  if(color) d.style.color=color;
+  layer.appendChild(d);
+  fxTimer = setTimeout(()=>{ if(layer.firstChild===d) layer.innerHTML=""; }, 900);
+}
+
+// 패시브 계산
+function effAtk(card, field){
+  // 헬륨(불활성)이나 공격력 0 카드는 반응/버프를 받지 않음
+  if(card.atk===0 || card.passive?.kind==="lastStand") return card.atk;
+  let a=card.atk; field.forEach(c=>{ if(c.iid!==card.iid && c.passive?.kind==="allyAtkUp") a+=c.passive.value; }); return a;
+}
+function shieldFor(card, field){ let s=0; field.forEach(c=>{ if(c.iid!==card.iid && c.passive?.kind==="shield") s+=c.passive.value; }); return s; }
+function costOf(card, field){ let reduce=0; field.forEach(c=>{ if(c.passive?.kind==="costDown") reduce+=c.passive.value; }); return Math.max(1, card.cost - reduce); }
+function tauntTargets(field){ const t=field.filter(c=>c.passive?.kind==="taunt"); return t.length? t : field; }
+
+// ============================================================
+// 튜토리얼
+// ============================================================
+const SLIDES = [
+  { emoji:"🎯", title:"게임 목표", body:"상대의 본체 체력을 <b>0</b>으로 만들면 승리!<br>내 본체 체력이 0이 되면 패배해요.", visual:"❤️ 25 → 0 이면 승리!" },
+  { emoji:"⚡", title:"에너지", body:"카드를 소환하려면 <b>에너지</b>가 필요해요.<br>매 턴 1씩 늘어나고, 최대 6까지 모여요.", visual:"1턴 ⚡1 · 2턴 ⚡2 · 3턴 ⚡3 …" },
+  { emoji:"🔷", title:"소환", body:"손패에서 카드를 눌러 내 앞에 원소를 불러와요.<br><b>소환한 턴에는 공격할 수 없어요.</b> 다음 턴부터 싸워요!", visual:"손패 🎴 → 내 필드 🛡️" },
+  { emoji:"⚔️", title:"공격", body:"내 카드로 상대 카드를 공격해요.<br>상대 앞에 카드가 없으면 <b>본체를 직접</b> 때릴 수 있어요!", visual:"내 ⚔️ → 상대 카드 → 상대 본체" },
+  { emoji:"💥", title:"관통 공격", body:"카드 체력보다 센 공격은 <b>넘친 만큼 본체까지</b> 뚫고 들어가요!", visual:"❤️2 카드 + ⚔️4 공격<br>= 카드 파괴 💀 + 본체에 2 💥" },
+  { emoji:"✨", title:"특별한 능력", body:"원소마다 특별한 성질이 있어요.<br>산소는 아군 공격을 올리고, 질소는 아군을 지키고, 철은 대신 맞아줘요!", visual:"O 🔥 · N 🛡️ · Fe 🧲 · Au 💎" },
+];
+let slideIdx = 0;
+
+function renderTutorial(){
+  const s = SLIDES[slideIdx];
+  const dots = SLIDES.map((_,i)=>`<div class="dot ${i===slideIdx?'active':''}"></div>`).join("");
+  const last = slideIdx === SLIDES.length-1;
+  document.getElementById("app").innerHTML = `
+    <div id="tutorial">
+      <h1>🧪 원소 카드 배틀</h1>
+      <div class="slide-card">
+        <div class="slide-emoji">${s.emoji}</div>
+        <div class="slide-title">${s.title}</div>
+        <div class="slide-body">${s.body}</div>
+        <div class="slide-visual">${s.visual}</div>
+      </div>
+      <div class="dots">${dots}</div>
+      <div class="tut-nav">
+        ${slideIdx>0 ? `<button class="btn-ghost" onclick="prevSlide()">← 이전</button>` : ``}
+        ${!last ? `<button class="btn-primary" onclick="nextSlide()">다음 →</button>`
+                : (!tutoDone
+                    ? `<button class="btn-primary" onclick="startTutorial()">튜토리얼 매치 시작 ⚔️</button>`
+                    : `<button class="btn-primary" onclick="showTitle()">시작하기 ⚔️</button>`)}
+        ${!last ? `<button class="btn-ghost" onclick="gotoLastSlide()">건너뛰기</button>`
+                : (!tutoDone ? `<button class="btn-ghost" onclick="skipTutorial()">튜토리얼 없이 시작</button>` : ``)}
+      </div>
+    </div>`;
+}
+function gotoLastSlide(){ slideIdx = SLIDES.length-1; renderTutorial(); }
+function nextSlide(){ if(slideIdx<SLIDES.length-1){slideIdx++; renderTutorial();} }
+function prevSlide(){ if(slideIdx>0){slideIdx--; renderTutorial();} }
+
+// ============================================================
+// 타이틀
+// ============================================================
+function chipHTML(k){
+  const e=ELEMENTS[k]; const g=gColor(e);
+  return `<div class="chip">
+    <div class="mini"><div class="mband" style="background:${g.band}"></div>
+      <div class="msym" style="background:linear-gradient(180deg, ${g.band} -40%, #1e2532 60%)">${e.symbol}</div></div>
+    <div class="mlabel">${elName(e.name)}</div></div>`;
+}
+function showTitle(){
+  const deckWarn = needsDeck()
+    ? `<div style="margin-bottom:10px; color:#fb923c; font-size:13px; font-weight:700;">⚠️ 원소가 6개를 넘었어요! 도감에서 덱을 짜야 전투할 수 있어요</div>` : "";
+  // 내 덱 표시 (덱 미완성이면 자동으로 들어갈 원소들)
+  const deckList = needsDeck() ? [] : activeDeckKeys();
+  const deckChips = deckList.length ? deckList.map(chipHTML).join("")
+    : `<div style="color:var(--ink-soft); font-size:13px; padding:8px;">아직 덱이 없어요. 도감에서 6종류를 골라주세요</div>`;
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:16px;">
+      <h1>🧪 원소 카드 배틀</h1>
+      <p class="subtitle">원소의 성질을 이용해 상대를 물리치자!</p>
+      <div class="owned-box"><b>⚔️ 내 덱</b><div class="chips">${deckChips}</div></div>
+      ${gachaUnlocked?`<div style="margin-bottom:10px; color:#5eead4; font-size:14px; font-weight:700;">🪙 코인 ${mole}　·　💎 에너지 결정 ${crystal}/${CRYSTAL_FOR_ELEMENT}</div>`:""}
+      <div style="margin-bottom:14px; color:var(--ink-soft); font-size:14px;">현재 ${STAGES[stage].label} 도전 중</div>
+      ${deckWarn}
+      <div class="lobby-menu">
+        <div class="menu-main">
+          <button class="btn-primary" onclick="tryStartBattle()">전투 시작 ⚔️</button>
+        </div>
+        <div class="menu-row">
+          ${gachaUnlocked
+            ? `<button class="btn-ghost" onclick="showGacha()">🎰 뽑기</button>`
+            : `<button class="btn-locked" onclick="toast('첫 전투에서 이기면 열려요!')">🔒 뽑기</button>`}
+          <button class="btn-ghost" onclick="showDex()">📖 도감 · 덱 짜기</button>
+          ${clearedStages[7]
+            ? `<button class="btn-ghost" onclick="showVersus()">🤝 대결</button>`
+            : `<button class="btn-locked" onclick="toast('7스테이지를 깨면 열려요!')">🔒 대결</button>`}
+        </div>
+        <div class="menu-row">
+          ${clearedStages[1]
+            ? `<button class="btn-ghost" onclick="showStageMap()">🗺️ 스테이지</button>`
+            : `<button class="btn-locked" onclick="toast('1스테이지를 깨면 열려요!')">🔒 스테이지</button>`}
+          <button class="btn-ghost" onclick="slideIdx=0;renderTutorial()">튜토리얼</button>
+          <button class="btn-ghost" onclick="showSettings()">⚙️ 설정</button>
+        </div>
+      </div>
+      <div class="ver">v0.21</div>
+      <div class="save-status">${saveAvailable
+        ? '💾 진행 상황이 자동 저장돼요'
+        : '⚠️ 이 환경은 저장이 안 돼요 · 파일로 받으면 저장됩니다'}</div>
+    </div>`;
+}
+
+// ---------- 설정 화면 ----------
+// ============================================================
+// 뽑기 시스템
+// ============================================================
+// ============================================================
+// 친구 대결 (덱 공유)
+// ============================================================
+let versusAce = null;      // 코드 만들 때 지정한 에이스
+let versusEnemyAce = null; // 상대 덱의 에이스 (대결 중 봇 우대용)
+
+// 친구 대결 메인 화면
+function showVersus(){
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:20px;">
+      <h1 style="font-size:28px;">🤝 친구 대결</h1>
+      <p class="subtitle">내 덱을 코드로 만들어 친구에게 보내거나,<br>친구 코드를 입력해 대결해요!</p>
+      <div class="gacha-box" style="margin-top:16px;">
+        <div style="font-size:15px; font-weight:800; margin-bottom:10px;">📤 내 덱 코드 만들기</div>
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">지금 내 덱을 암호 코드로 만들어요</div>
+        <button class="btn-primary" onclick="showMakeCode()">코드 만들기</button>
+      </div>
+      <div class="gacha-box" style="margin-top:14px;">
+        <div style="font-size:15px; font-weight:800; margin-bottom:10px;">📥 친구 코드로 대결</div>
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">친구가 준 코드를 입력해요</div>
+        <button class="btn-active" onclick="showEnterCode()">코드 입력</button>
+      </div>
+      <button class="btn-ghost" style="margin-top:18px;" onclick="showTitle()">← 로비로</button>
+    </div>`;
+}
+
+// 코드 만들기 화면 (에이스 지정 → 코드 생성)
+function showMakeCode(){
+  const keys = activeDeckKeys();
+  if(!keys || keys.length===0){ toast("먼저 덱을 짜주세요"); return; }
+  // 에이스 선택 칩들
+  const aceChips = keys.map(k=>{
+    const on = versusAce===k;
+    return `<div class="ace-pick ${on?'on':''}" onclick="setVersusAce('${k}')">${chipHTML(k)}${on?'<div class="ace-star">⭐</div>':''}</div>`;
+  }).join("");
+  const code = encodeDeck(keys, versusAce);
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:16px;">
+      <h1 style="font-size:24px;">📤 내 덱 코드</h1>
+      <p class="subtitle" style="font-size:13px;">에이스 카드를 하나 골라요 (선택)<br>에이스는 상대할 때 봇이 아껴 써요</p>
+      <div class="ace-row">${aceChips}</div>
+      ${versusAce?`<button class="btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="setVersusAce(null)">에이스 해제</button>`:""}
+      <div class="code-box">
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px;">이 코드를 친구에게 보내세요!</div>
+        <div class="code-text" id="code-text">${code}</div>
+        <button class="btn-primary" style="margin-top:12px;" onclick="copyCode('${code}')">📋 코드 복사</button>
+      </div>
+      <button class="btn-ghost" style="margin-top:16px;" onclick="showVersus()">← 뒤로</button>
+    </div>`;
+}
+function setVersusAce(k){ versusAce = k; showMakeCode(); }
+function copyCode(code){
+  // 1) 최신 클립보드 API 시도
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(()=>{
+      toast("코드를 복사했어요! 📋");
+    }).catch(()=>{
+      fallbackCopy(code);
+    });
+  } else {
+    fallbackCopy(code);
+  }
+}
+// 구식 복사 방법 (파일/미리보기 환경 대비)
+function fallbackCopy(code){
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = code;
+    ta.style.position = "fixed"; ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    if(ok) toast("코드를 복사했어요! 📋");
+    else toast("복사가 안 돼요. 코드를 직접 입력해주세요");
+  }catch(e){
+    toast("복사가 안 돼요. 코드를 직접 입력해주세요");
+  }
+}
+
+// 코드 입력 화면
+function showEnterCode(){
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:24px;">
+      <h1 style="font-size:24px;">📥 친구 코드 입력</h1>
+      <p class="subtitle" style="font-size:13px;">친구가 준 코드를 붙여넣어요</p>
+      <div class="code-box">
+        <input type="text" id="code-input" class="code-input" placeholder="코드 입력..." autocomplete="off">
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+        <button class="btn-primary" onclick="tryVersusBattle()">대결 시작 ⚔️</button>
+        <button class="btn-ghost" onclick="showVersus()">← 뒤로</button>
+      </div>
+    </div>`;
+}
+
+// 코드 입력 → 검증 → 대결 시작
+function tryVersusBattle(){
+  const input = document.getElementById("code-input");
+  if(!input){ return; }
+  const code = input.value;
+  const decoded = decodeDeck(code);
+  if(!decoded){ toast("잘못된 코드예요. 다시 확인해주세요"); return; }
+  if(decoded.keys.length===0){ toast("빈 덱이에요"); return; }
+  // 내 덱 필요 체크
+  if(needsDeck()){ toast("먼저 내 덱을 짜주세요"); showTitle(); return; }
+  startVersusBattle(decoded.keys, decoded.aceKey, code);
+}
+
+// 친구 덱을 봇으로 대결 시작
+function startVersusBattle(enemyKeys, enemyAce, enemyCode){
+  UID = 1;
+  versusEnemyAce = enemyAce;
+  const myDeck = buildPlayerDeck();
+  // 친구 덱 봇 만들기 (3장씩)
+  const enD = [];
+  enemyKeys.forEach(k=>{ for(let i=0;i<DECK_COPIES;i++) enD.push(k); });
+  const enDeck = shuffle(enD.map(makeCard));
+  G = { turn:"me", turnCount:1, botMiss:0.02, versus:true, versusCode:enemyCode, versusAce:enemyAce,
+    me:{ hp:25, energy:1, maxEnergy:1, deck:myDeck.slice(START_HAND), hand:myDeck.slice(0,START_HAND), field:[] },
+    en:{ hp:25, maxHp:25, energy:0, maxEnergy:0, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] },
+  };
+  logs = []; sel={hand:null,attacker:null,mode:null}; busy=false;
+  log("🤝 친구 대결 시작! 당신의 턴입니다.");
+  renderBattle();
+  fx("친구 대결!", "#a78bfa");
+}
+
+function showGacha(){
+  const canDraw = mole >= GACHA_COST;
+  const canExchange = crystal >= CRYSTAL_FOR_ELEMENT;
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:20px;">
+      <h1 style="font-size:30px;">🎰 원소 뽑기</h1>
+      <div class="gacha-currency">
+        <span>🪙 코인 <b>${mole}</b></span>
+        <span>💎 에너지 결정 <b>${crystal}</b>/${CRYSTAL_FOR_ELEMENT}</span>
+      </div>
+      <div class="gacha-box">
+        <div style="font-size:56px; margin-bottom:10px;">🎲</div>
+        <div style="font-size:14px; color:var(--ink-soft); margin-bottom:16px;">양성자를 모아 원소를 뽑아요!<br>이미 가진 원소가 나오면 💎 에너지 결정으로 바뀌어요</div>
+        <button class="${canDraw?'btn-primary':'btn-disabled'}" ${canDraw?'onclick="doGacha()"':'disabled'} style="font-size:17px;">뽑기 (🪙${GACHA_COST})</button>
+        ${!canDraw?`<div style="font-size:12px;color:#fb923c;margin-top:8px;">코인이 부족해요 (전투에서 벌 수 있어요)</div>`:""}
+      </div>
+      <div class="gacha-box" style="margin-top:14px;">
+        <div style="font-size:14px; margin-bottom:10px;">💎 에너지 결정 교환</div>
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">결정 ${CRYSTAL_FOR_ELEMENT}개로 원하는 원소 하나를 골라 얻어요</div>
+        <button class="${canExchange?'btn-active':'btn-disabled'}" ${canExchange?'onclick="showExchange()"':'disabled'}>교환하기 (💎${CRYSTAL_FOR_ELEMENT})</button>
+        ${!canExchange?`<div style="font-size:12px;color:var(--ink-soft);margin-top:8px;">결정이 더 필요해요 (${crystal}/${CRYSTAL_FOR_ELEMENT})</div>`:""}
+      </div>
+      <button class="btn-ghost" style="margin-top:18px;" onclick="showTitle()">← 로비로</button>
+    </div>`;
+}
+
+// 뽑기 실행
+function doGacha(){
+  if(mole < GACHA_COST){ toast("코인이 부족해요"); return; }
+  mole -= GACHA_COST;
+  gachaCount++;
+  // 뽑기 풀 = 우라늄(보스 전용) 제외 모든 원소
+  const allKeys = Object.keys(ELEMENTS).filter(k=>k!=="U");
+  const notOwned = allKeys.filter(k=>!owned.includes(k));
+
+  let key;
+  // 첫 2번은 새 원소 확정 (안 가진 게 있으면)
+  if(gachaCount <= 2 && notOwned.length > 0){
+    key = notOwned[(Math.random()*notOwned.length)|0];
+  } else {
+    // 안 가진 원소는 2배 가중치
+    const weighted = [];
+    allKeys.forEach(k=>{
+      weighted.push(k);
+      if(!owned.includes(k)) weighted.push(k); // 한 번 더 넣어서 2배
+    });
+    key = weighted[(Math.random()*weighted.length)|0];
+  }
+
+  const isNew = !owned.includes(key);
+  if(isNew){ owned.push(key); }
+  else { crystal += 1; }
+  saveGame();
+  playGachaAnim(key, isNew);
+}
+
+// 양성자 모이는 연출 (목탁 리듬: 처음 느리게 → 점점 빠르게, 60넘으면 촤라락)
+function playGachaAnim(key, isNew){
+  const e = ELEMENTS[key];
+  const total = e.number;
+  const g = gColor(e);
+
+  document.getElementById("app").innerHTML = `
+    <div id="gacha-anim" onclick="skipGacha()">
+      <div class="proton-counter" id="proton-counter">0</div>
+      <div class="light-pillar" id="light-pillar"></div>
+      <div class="proton-field" id="proton-field"></div>
+      <div class="proton-core" id="proton-core"></div>
+      <div class="gacha-flash" id="gacha-flash"></div>
+      <div class="gacha-skip">화면을 누르면 건너뛰기</div>
+    </div>`;
+
+  gachaResult = { key, isNew };
+  gachaSkipped = false;
+  const field = document.getElementById("proton-field");
+  const counter = document.getElementById("proton-counter");
+  let count = 0;
+
+  // 하나의 양성자 생성
+  function spawnProton(){
+    const p = document.createElement("div");
+    p.className = "proton";
+    p.style.background = g.band;
+    p.style.boxShadow = `0 0 10px ${g.band}`;
+    const angle = Math.random()*Math.PI*2;
+    const dist = 220 + Math.random()*160;
+    p.style.setProperty("--sx", Math.cos(angle)*dist+"px");
+    p.style.setProperty("--sy", Math.sin(angle)*dist+"px");
+    field.appendChild(p);
+    // 사라지지 않고 중앙에 남아 쌓임
+  }
+  // 다음 양성자까지의 간격 (목탁 리듬)
+  function nextInterval(n){
+    // 초반 2개는 겁나 느리게 (빰........ 빰......)
+    if(n === 1) return 1100;
+    if(n === 2) return 850;
+    // 후반: 60 넘으면 확 빠르게 촤라락 (이전 방식)
+    if(n >= 60) return 18;
+    // 중반: 3~60번째, 부드럽게 가속
+    const span = Math.max(1, Math.min(total, 60) - 2);
+    const p = (n - 2) / span;
+    const eased = p * p;
+    return Math.max(55, 450 - eased*395);
+  }
+
+  function step(){
+    if(gachaSkipped) return;
+    count++;
+    counter.textContent = count;
+    spawnProton();
+    if(count >= total){
+      setTimeout(()=>{ if(!gachaSkipped) risePillar(); }, 400);
+      return;
+    }
+    gachaTimer = setTimeout(step, nextInterval(count));
+  }
+  gachaTimer = setTimeout(step, 400); // 첫 양성자 전 살짝 뜸
+}
+let gachaResult = null, gachaTimer = null, gachaSkipped = false;
+
+// 빛기둥 솟구침 (족 색)
+function risePillar(){
+  const {key} = gachaResult;
+  const g = gColor(ELEMENTS[key]);
+  const pillar = document.getElementById("light-pillar");
+  // 쌓인 양성자들이 빛으로 흡수되듯 사라짐
+  const field = document.getElementById("proton-field");
+  if(field){ field.style.transition = "opacity .5s"; field.style.opacity = "0"; }
+  if(pillar){
+    pillar.style.background = `linear-gradient(to top, ${g.band}, transparent)`;
+    pillar.style.boxShadow = `0 0 60px 20px ${g.band}`;
+    pillar.classList.add("rise");
+  }
+  // 뜸 들이다가 팡!
+  setTimeout(()=>{ if(!gachaSkipped) burstGacha(); }, 900);
+}
+// 팡 터짐 + 화면 번쩍 → 숫자
+function burstGacha(){
+  const {key} = gachaResult;
+  const g = gColor(ELEMENTS[key]);
+  const flash = document.getElementById("gacha-flash");
+  const anim = document.getElementById("gacha-anim");
+  const pillar = document.getElementById("light-pillar");
+  if(flash){ flash.style.background = g.band; flash.classList.add("burst"); }
+  if(anim){ anim.classList.add("shake"); }
+  // 빛기둥은 팡 터지며 사라짐 (숫자랑 안 겹치게)
+  if(pillar){ pillar.style.transition = "opacity .25s"; pillar.style.opacity = "0"; }
+  setTimeout(()=>{ if(!gachaSkipped) showGachaNumber(); }, 350);
+}
+
+function skipGacha(){
+  gachaSkipped = true;
+  if(gachaTimer) clearTimeout(gachaTimer);
+  showGachaResult();
+}
+function showGachaNumber(){
+  const {key} = gachaResult;
+  const e = ELEMENTS[key]; const g = gColor(e);
+  const core = document.getElementById("proton-core");
+  if(core){ core.textContent = e.number; core.style.color = "#fff"; core.style.textShadow = `0 0 24px ${g.band}, 0 0 48px ${g.band}`; core.classList.add("show"); }
+  setTimeout(()=>{ if(!gachaSkipped) showGachaResult(); }, 1100);
+}
+function showGachaResult(){
+  const {key, isNew} = gachaResult;
+  const e = ELEMENTS[key]; const g = gColor(e);
+  const msg = isNew
+    ? `<div style="color:var(--hp);font-size:16px;font-weight:800;margin-top:10px;">✨ 새 원소 획득!</div>`
+    : `<div style="color:#5eead4;font-size:15px;font-weight:700;margin-top:10px;">이미 가진 원소! 💎 에너지 결정 +1 (${crystal}/${CRYSTAL_FOR_ELEMENT})</div>`;
+  document.getElementById("app").innerHTML = `
+    <div id="result">
+      <div style="font-size:13px;color:var(--ink-soft);">원자번호 ${e.number}</div>
+      <div style="display:flex;justify-content:center;margin:16px 0;">${chipHTML(key)}</div>
+      <h1 style="font-size:32px;">${elName(e.name)}</h1>
+      ${msg}
+      <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+        ${mole>=GACHA_COST?`<button class="btn-primary" onclick="doGacha()">또 뽑기 (🪙${GACHA_COST})</button>`:""}
+        <button class="btn-ghost" onclick="showGacha()">← 뽑기 화면</button>
+      </div>
+    </div>`;
+}
+
+// 에너지 결정 교환 화면 (안 가진 원소 중 선택)
+function showExchange(){
+  if(crystal < CRYSTAL_FOR_ELEMENT){ toast("에너지 결정이 부족해요"); return; }
+  const notOwned = Object.keys(ELEMENTS).filter(k=>!owned.includes(k) && k!=="U");
+  if(notOwned.length===0){ toast("이미 모든 원소를 가지고 있어요!"); return; }
+  const cards = notOwned.map(k=>{
+    const e=ELEMENTS[k];
+    return `<div class="reward-pick" onclick="doExchange('${k}')">
+      ${chipHTML(k)}
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">⚡${e.cost} · ⚔${e.atk} · ❤${e.hp}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("app").innerHTML = `
+    <div id="result">
+      <h1 style="font-size:26px;">💎 원소 교환</h1>
+      <p class="subtitle">에너지 결정 ${CRYSTAL_FOR_ELEMENT}개로 원소 하나를 골라요</p>
+      <div class="reward-choices" style="max-height:400px;overflow-y:auto;">${cards}</div>
+      <button class="btn-ghost" style="margin-top:16px;" onclick="showGacha()">← 뒤로</button>
+    </div>`;
+}
+function doExchange(key){
+  if(crystal < CRYSTAL_FOR_ELEMENT){ toast("에너지 결정이 부족해요"); return; }
+  if(owned.includes(key)) return;
+  crystal -= CRYSTAL_FOR_ELEMENT;
+  owned.push(key);
+  saveGame();
+  SFX.win();
+  toast(`${elName(ELEMENTS[key].name)} 획득!`);
+  showGacha();
+}
+
+function showSettings(){
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:24px;">
+      <h1 style="font-size:28px;">⚙️ 설정</h1>
+      <div class="settings-box">
+        <div class="set-row">
+          <span>🔊 효과음</span>
+          <button class="toggle ${soundOn?'on':''}" onclick="toggleSound()">${soundOn?'켜짐':'꺼짐'}</button>
+        </div>
+        <div class="set-row">
+          <span>🔤 원소 이름</span>
+          <button class="toggle on" onclick="toggleNames()">${useOldNames?'나트륨·칼륨':'소듐·포타슘'}</button>
+        </div>
+        <div class="set-row">
+          <span>📜 전투 기록</span>
+          <button class="toggle ${showLog?'on':''}" onclick="toggleLog()">${showLog?'보임':'숨김'}</button>
+        </div>
+        <div class="set-row">
+          <span>💾 진행 저장</span>
+          <span style="color:${saveAvailable?'var(--hp)':'#fb923c'}; font-weight:700; font-size:13px;">${saveAvailable?'켜짐 ✓':'사용 불가'}</span>
+        </div>
+        <div class="set-divider"></div>
+        <div class="set-row">
+          <span>🗑️ 게임 초기화</span>
+          <button class="btn-danger" onclick="confirmReset()">처음부터</button>
+        </div>
+        <div style="font-size:11px; color:var(--ink-soft); margin-top:8px; text-align:left;">
+          초기화하면 모은 원소·덱·진행이 모두 사라져요
+        </div>
+      </div>
+      <button class="btn-primary" style="margin-top:20px;" onclick="showTitle()">← 돌아가기</button>
+    </div>`;
+}
+function toggleSound(){
+  soundOn = !soundOn;
+  if(soundOn) SFX.click();
+  saveGame();
+  showSettings();
+}
+function toggleNames(){
+  useOldNames = !useOldNames;
+  saveGame();
+  showSettings();
+}
+function toggleLog(){
+  showLog = !showLog;
+  saveGame();
+  showSettings();
+}
+function confirmReset(){
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:50px;">
+      <h1 style="font-size:26px;">🗑️ 게임 초기화</h1>
+      <div class="settings-box" style="text-align:center;">
+        <div style="font-size:15px; line-height:1.7; margin-bottom:6px;">정말 처음부터 시작할까요?</div>
+        <div style="font-size:13px; color:#fb923c; font-weight:700;">모은 원소·덱·진행이 모두 사라지고<br>되돌릴 수 없어요!</div>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+        <button class="btn-danger" onclick="doReset()">네, 초기화할게요</button>
+        <button class="btn-primary" onclick="showSettings()">아니요, 취소</button>
+      </div>
+    </div>`;
+}
+function doReset(){
+  resetGame();
+}
+
+// 전투 시작 시도: 덱을 짜야 하면 도감으로 보냄
+function tryStartBattle(){
+  if(needsDeck()){
+    toast("먼저 덱을 짜주세요! (6종류 선택)");
+    showDex();
+    return;
+  }
+  startBattle();
+}
+
+// 스테이지 맵 (깬 스테이지 골라서 다시 하기)
+function showStageMap(){
+  let cells = "";
+  for(let s=1; s<=MAX_STAGE; s++){
+    const st = STAGES[s];
+    // 갈 수 있는 조건: 이미 깼거나(clearedStages) 현재 도전 스테이지(stage)까지
+    const unlocked = clearedStages[s] || s<=maxStage;
+    const isBoss = st.boss;
+    const cleared = clearedStages[s];
+    if(unlocked){
+      cells += `<div class="map-cell ${isBoss?'boss':''} ${cleared?'cleared':''}" onclick="playSpecificStage(${s})">
+        <div class="map-num">${isBoss?'☢️':s}</div>
+        <div class="map-label">${isBoss?'보스':(st.label||('스테 '+s))}</div>
+        ${cleared?'<div class="map-check">✓</div>':''}
+      </div>`;
+    } else {
+      cells += `<div class="map-cell locked">
+        <div class="map-num">🔒</div>
+        <div class="map-label">스테 ${s}</div>
+      </div>`;
+    }
+  }
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:16px;">
+      <h1 style="font-size:26px;">🗺️ 스테이지 선택</h1>
+      <p class="subtitle" style="font-size:13px;">깬 스테이지를 다시 해서 코인을 벌 수 있어요</p>
+      <div class="stage-map">${cells}</div>
+      <button class="btn-ghost" style="margin-top:16px;" onclick="showTitle()">← 로비로</button>
+    </div>`;
+}
+// 특정 스테이지 플레이 (진행도는 안 건드림)
+function playSpecificStage(s){
+  if(needsDeck()){ toast("먼저 덱을 짜주세요!"); showDex(); return; }
+  const unlocked = clearedStages[s] || s<=maxStage;
+  if(!unlocked){ toast("아직 잠긴 스테이지예요"); return; }
+  stage = s;          // 이 판만 이 스테이지로
+  startBattle();
+  if(G) G.fromMap = true;   // 맵에서 골라 온 판 표시
+}
+
+// ============================================================
+// 도감 + 덱 짜기 화면
+// ============================================================
+let dexPick = [];       // 도감에서 임시로 고른 원소들
+let dexDetail = null;   // 상세창에 띄운 원소 key
+
+function showDex(){
+  // 임시 선택 초기화: 기존 덱이 있으면 그걸로, 없으면 보유원소(6개 이하면 다)
+  if(deckKeys && deckKeys.length===DECK_TYPES) dexPick = [...deckKeys];
+  else dexPick = owned.slice(0, DECK_TYPES);
+  dexDetail = null;
+  renderDex();
+}
+
+function renderDex(){
+  // 주기율표 그리드 만들기 (10행 x 18열)
+  let cells = "";
+  // 셀 위치 맵
+  const posMap = {};
+  DEX.forEach(d=>{ posMap[d[3]+"-"+d[4]] = d; });
+
+  for(let row=1; row<=10; row++){
+    for(let col=1; col<=18; col++){
+      const d = posMap[row+"-"+col];
+      if(row===8){ cells += `<div class="dex-gap"></div>`; continue; } // 8행은 섬과 본체 사이 빈 줄
+      if(!d){ cells += `<div class="dex-empty"></div>`; continue; }
+      const key = d[1];
+      const have = owned.includes(key);
+      const picked = dexPick.includes(key);
+      const playable = !!ELEMENTS[key]; // 게임 스탯 있는 원소
+      let cls = "dex-cell";
+      if(!have) cls += " locked";
+      else { cls += " owned"; if(picked) cls += " picked"; }
+      const g = playable ? gColor(ELEMENTS[key]) : null;
+      const bandStyle = (have && g) ? `style="border-top:3px solid ${g.band}"` : "";
+      cells += `<div class="${cls}" ${bandStyle} ${have?`onclick="openDexDetail('${key}')"`:""}>
+        <div class="dex-num">${d[0]}</div>
+        <div class="dex-sym">${key}</div>
+        ${picked?`<div class="dex-check">✓</div>`:""}
+      </div>`;
+    }
+  }
+
+  const detail = dexDetail ? dexDetailHTML(dexDetail) : `<div class="dex-hint">원소를 눌러 정보를 보고<br>덱에 장착하세요</div>`;
+  const count = dexPick.length;
+  const canSave = count===DECK_TYPES;
+  const autoMode = owned.length <= DECK_TYPES;
+
+  document.getElementById("app").innerHTML = `
+    <div class="dex-top">
+      <button class="btn-ghost" onclick="showTitle()">← 뒤로</button>
+      <div class="dex-title">📖 원소 도감</div>
+      <div class="dex-counter ${canSave?'ok':''}">${autoMode?`보유 ${owned.length}종`:`덱 ${count}/${DECK_TYPES}`}</div>
+    </div>
+    <div class="dex-layout">
+      <div class="dex-grid">${cells}</div>
+      <div class="dex-side">${detail}</div>
+    </div>
+    ${autoMode
+      ? `<div class="dex-save-row"><div style="color:var(--ink-soft);font-size:13px;">원소가 6개 이하라 모두 자동으로 덱에 들어가요</div></div>`
+      : `<div class="dex-save-row">
+           <button class="${canSave?'btn-primary':'btn-disabled'}" ${canSave?'onclick="saveDeck()"':'disabled'}>덱 저장 (${count}/${DECK_TYPES})</button>
+         </div>`}`;
+}
+
+function openDexDetail(key){
+  dexDetail = key;
+  renderDex();
+}
+
+function dexDetailHTML(key){
+  const d = DEX_MAP[key];
+  const e = ELEMENTS[key]; // 게임 스탯 (있을 수도)
+  const picked = dexPick.includes(key);
+  const g = e ? gColor(e) : {band:"#94a3b8"};
+
+  let statLine = "", skillLine = "", btn = "";
+  if(e){
+    statLine = `<div class="dd-stat">⚡ ${e.cost} · ⚔ ${e.atk} · ❤ ${e.hp}</div>`;
+    if(e.passive) skillLine = `<div class="dd-skill">✨ <b>${e.passive.short}</b><br>${e.passive.label}</div>`;
+    else if(e.active) skillLine = `<div class="dd-skill">💥 <b>${e.active.short}</b><br>${e.active.label}</div>`;
+    else skillLine = `<div class="dd-skill" style="color:var(--ink-soft)">특별한 능력이 없어요</div>`;
+    // 장착 버튼
+    if(owned.length <= DECK_TYPES){
+      btn = `<div style="color:var(--ink-soft);font-size:12px;margin-top:8px;">자동으로 덱에 포함돼요</div>`;
+    } else if(picked){
+      btn = `<button class="btn-danger" style="margin-top:10px;" onclick="unpick('${key}')">덱에서 빼기</button>`;
+    } else {
+      btn = `<button class="btn-primary" style="margin-top:10px;" onclick="pick('${key}')">덱에 넣기</button>`;
+    }
+  } else {
+    statLine = `<div class="dd-stat" style="color:var(--ink-soft)">아직 게임에 없는 원소예요</div>`;
+  }
+
+  return `<div class="dd-card">
+    <div class="dd-band" style="background:${g.band}"></div>
+    <div class="dd-head">
+      <span class="dd-sym">${key}</span>
+      <div><div class="dd-name">${elName(d.name)}</div><div class="dd-num">${d.number}번</div></div>
+    </div>
+    ${statLine}
+    ${skillLine}
+    <div class="dd-desc">🧪 ${d.desc}</div>
+    ${btn}
+  </div>`;
+}
+
+function pick(key){
+  if(dexPick.includes(key)) return;
+  if(dexPick.length >= DECK_TYPES){ toast(`${DECK_TYPES}종류까지만 넣을 수 있어요`); return; }
+  dexPick.push(key);
+  renderDex();
+}
+function unpick(key){
+  dexPick = dexPick.filter(k=>k!==key);
+  renderDex();
+}
+function saveDeck(){
+  if(dexPick.length !== DECK_TYPES){ toast(`${DECK_TYPES}종류를 채워주세요`); return; }
+  deckKeys = [...dexPick];
+  saveGame();
+  toast("덱을 저장했어요! ⚔️");
+  showTitle();
+}
+
+// ============================================================
+// 전투 시작
+// ============================================================
+// ============================================================
+// 튜토리얼 (실습 매치)
+// ============================================================
+// 단계: 1=수소소환 2=턴종료 3=(상대수소)산소설명 4=공격 5=실전전환 6~=자유+철질소
+function startTutorial(){
+  UID = 1;
+  tutoStep = 1;
+  // 고정 세팅: 내 손패 수소 위주, 상대 약하게
+  const myHand = [makeCard("H"), makeCard("O"), makeCard("H"), makeCard("N")];
+  const enDeck = shuffle([makeCard("H"),makeCard("H"),makeCard("O"),makeCard("N")]);
+  G = { turn:"me", turnCount:1, botMiss:0, tutorial:true,
+    me:{ hp:25, energy:1, maxEnergy:1, deck:[makeCard("O"),makeCard("H"),makeCard("N"),makeCard("H")], hand:myHand, field:[] },
+    en:{ hp:20, maxHp:20, energy:1, maxEnergy:1, deck:enDeck.slice(2), hand:enDeck.slice(0,2), field:[] },
+  };
+  logs = []; sel={hand:null,attacker:null,mode:null}; busy=false;
+  renderBattle();
+  showTutoGuide();
+}
+
+// 단계별 안내 문구
+function tutoGuideText(){
+  switch(tutoStep){
+    case 1: return "⚡ 에너지가 1이에요. <b>수소</b>(비용 1)만 낼 수 있어요.<br>손패의 <b>수소를 누르고 → '소환하기'</b>를 눌러봐요!";
+    case 2: return "잘했어요! 소환한 카드는 <b>그 턴엔 공격할 수 없어요.</b><br>아래 <b>'턴 종료'</b>를 눌러 상대에게 차례를 넘겨요.";
+    case 3: return "상대가 수소를 냈어요.<br>이번엔 <b>산소</b>를 소환해봐요! 산소를 옆에 두면 아군이 더 세져요.";
+    case 4: return "💡 카드에 <b>마우스를 올리면</b> 능력을 볼 수 있어요.<br>방금 낸 <b>산소</b>에 올려보면 '연소 지원' 능력이 보여요!";
+    case 5: return "산소 덕분에 수소가 세졌어요(공격 1→2)!<br>이제 <b>수소를 누르고 → 상대 수소를 눌러</b> 공격해봐요.";
+    case 6: return "훌륭해요! 기본은 다 배웠어요 🎉<br>이제 <b>상대가 본격적으로</b> 나와요. 배운 걸로 이겨봐요!";
+    case 7: return "저 앞의 <b>철</b>은 벽처럼 막아줘요(철부터 없애야 해요).<br>뒤의 <b>질소</b>는 아군을 지키는 카드예요. 산소로 강해진 카드로 철을 공격해봐요!";
+    case 8: return "💥 카드 체력보다 <b>센 공격</b>은 넘친 만큼 <b>본체까지</b> 들어가요(관통)!";
+    case 9: return "상대 카드를 다 없애면 <b>본체를 직접</b> 공격할 수 있어요!<br>상대 본체 체력을 0으로 만들면 승리! 💪";
+    default: return "";
+  }
+}
+
+function showTutoGuide(){
+  let box = document.getElementById("tuto-guide");
+  if(!box){
+    box = document.createElement("div");
+    box.id = "tuto-guide";
+    document.body.appendChild(box);
+  }
+  const txt = tutoGuideText();
+  if(!txt){ box.style.display="none"; return; }
+  box.style.display="block";
+  box.innerHTML = `<div class="tuto-text">${txt}</div>
+    <button class="tuto-skip" onclick="skipTutorial()">튜토리얼 건너뛰기 ✕</button>`;
+}
+function hideTutoGuide(){
+  const box = document.getElementById("tuto-guide");
+  if(box) box.remove();
+}
+
+// 튜토리얼 단계 진행 (액션 후 호출)
+function tutoAdvance(action){
+  if(!G || !G.tutorial) return;
+  if(tutoStep===1 && action==="summon"){ tutoStep=2; showTutoGuide(); }
+  else if(tutoStep===3 && action==="summon"){ // 산소 소환함
+    tutoStep=4; showTutoGuide();
+    setTimeout(()=>{ if(tutoStep===4){ tutoStep=5; showTutoGuide(); } }, 3500); // 능력 확인 안내 후 공격 단계
+  }
+  else if(tutoStep===5 && action==="attack"){ tutoStep=6; setTimeout(tutoToRealPhase, 900); }
+}
+
+// 상대 턴 끝난 뒤 튜토리얼 진행
+function tutoAfterEnemyTurn(){
+  if(tutoStep===2){ tutoStep=3; showTutoGuide(); } // 상대 수소 낸 뒤 → 산소 소환 유도
+}
+
+// 6단계: 실전 국면으로 전환 (철·질소 등장)
+function tutoToRealPhase(){
+  if(!G) return;
+  showTutoGuide(); // "이제 본격적으로"
+  setTimeout(()=>{
+    if(!G) return;
+    tutoStep=7;
+    G.en.field.push({...makeCard("Fe"), canAttack:false, hasAttacked:false});
+    G.en.field.push({...makeCard("N"), canAttack:false, hasAttacked:false});
+    G.me.maxEnergy=6; G.me.energy=6;
+    renderBattle();
+    showTutoGuide();
+  }, 1800);
+}
+
+function skipTutorial(){
+  hideTutoGuide();
+  tutoStep=0;
+  G=null; busy=false;
+  finishTutorial(true); // 건너뛰어도 철 지급? — 아래에서 결정
+}
+
+// 튜토리얼 전용 봇 턴 (봐주기)
+async function tutoEnemyTurn(){
+  await wait(600);
+  if(!G) return;
+  G.en.field.forEach(c=>{ c.canAttack=true; c.hasAttacked=false; });
+
+  // 1~5단계: 상대 수소 하나만 냄 (아직 없으면), 공격 안 함
+  if(tutoStep <= 5){
+    if(G.en.field.length===0){
+      const h = G.en.hand.find(c=>c.key==="H");
+      if(h){
+        G.en.hand = G.en.hand.filter(c=>c.iid!==h.iid);
+        G.en.field.push({...h, canAttack:false, hasAttacked:false});
+        log("🔶 상대가 수소를 냈어요");
+      }
+    }
+    // 공격 안 함 (봐주기)
+  } else {
+    // 6단계 이후: 철은 공격 안 함, 질소만 공격, 내 체력 5 이하면 안 때림
+    for(const c of G.en.field){
+      if(!G) return;
+      if(c.hasAttacked) continue;
+      if(c.key==="Fe") continue;              // 철은 공격 안 함
+      if(G.me.hp <= 5) continue;              // 봐주기: 내 체력 낮으면 안 때림
+      if(G.me.field.length===0){
+        // 내 필드 비면 본체 살짝 (약하게)
+        if(G.me.hp > 5){ G.me.hp -= 1; log(`💥 상대 공격! 본체 -1`); renderBattle(); flashHp("me"); }
+      } else {
+        await wait(500);
+        if(!G) return;
+        const t = G.me.field[0];
+        t.curHp -= effAtk(c, G.en.field);
+        if(t.curHp<=0){ G.me.field = G.me.field.filter(x=>x.iid!==t.iid); }
+        c.hasAttacked=true;
+        renderBattle();
+      }
+    }
+  }
+  await wait(500);
+  if(!G) return;
+  // 내 턴으로
+  G.me.maxEnergy = Math.min(MAX_ENERGY, G.me.maxEnergy+1); G.me.energy = G.me.maxEnergy;
+  drawFor(G.me, "당신");
+  G.me.field.forEach(c=>{ c.canAttack=true; c.hasAttacked=false; });
+  G.turn="me"; G.turnCount++; busy=false;
+  renderBattle();
+  tutoAfterEnemyTurn();
+}
+
+// 튜토리얼 완료
+function finishTutorial(skipped){
+  tutoStep=0;
+  hideTutoGuide();
+  G=null; busy=false;
+  if(!owned.includes("Fe")) owned.push("Fe");
+  tutoDone=true;
+  saveGame();
+  document.getElementById("app").innerHTML = `<div id="result">
+    <h1>🎓 튜토리얼 완료!</h1>
+    <div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">첫 원소 카드 획득! 🎁</div>
+      <div style="display:flex;justify-content:center;">${chipHTML("Fe")}</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">⚡3 · ⚔3 · ❤4 · ✨자석 방패</div></div>
+    <p class="subtitle">${skipped?"이제 준비됐어요!":"이제 진짜 모험을 시작해요!"}</p>
+    <div style="margin-top:20px;"><button class="btn-primary" onclick="showTitle()">로비로 →</button></div>
+  </div>`;
+}
+
+function startBattle(){
+  UID = 1;
+  const st = STAGES[stage];
+  const myDeck = buildPlayerDeck();
+  const enDeck = buildDeck(st.deck);
+  G = { turn:"me", turnCount:1, botMiss:st.miss,
+    me:{ hp:START_HP, energy:1, maxEnergy:1, deck:myDeck.slice(START_HAND), hand:myDeck.slice(0,START_HAND), field:[] },
+    en:{ hp:st.hp, maxHp:st.hp, energy:0, maxEnergy:0, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] },
+  };
+  if(st.boss){ G.boss=true; G.bossPhase=1; }
+  logs = []; sel={hand:null,attacker:null,mode:null}; busy=false;
+  log(`⚔️ ${st.label} 시작! 당신의 턴입니다.`);
+  renderBattle();
+  fx(st.boss ? "☢️ 보스 등장!" : `${st.label}`, st.boss ? "#a3e635" : "#3b82f6");
+}
+
+// 보스 1페이즈 승리 → 가짜 클리어 화면 (로비 버튼만, 누르면 2페이즈)
+function showBossFakeClear(){
+  busy = true;
+  fx("🎉 승리!", "#22c55e"); SFX.win();
+  setTimeout(()=>{
+    document.getElementById("app").innerHTML = `<div id="result">
+      <h1>🏆 보스 격파!</h1>
+      <p class="subtitle">해냈어요! 보스를 물리쳤어요! 🎉</p>
+      <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>
+      <div class="ver">v0.21</div></div>`;
+  }, 900);
+}
+
+// 보스 2페이즈: 화면깨짐 연출 → 새 봇 (우라늄 풀파워)
+function startBossPhase2(){
+  busy = true;
+  // 화면 깨짐 연출
+  const glitch = document.createElement("div");
+  glitch.id = "boss-glitch";
+  glitch.innerHTML = `<div class="glitch-text">☢️ 아직 끝나지 않았다...</div>`;
+  document.body.appendChild(glitch);
+  SFX.lose();
+  setTimeout(()=>{
+    glitch.remove();
+    // 2페이즈: 상대 새로 + 내 필드·손패·에너지 초기화 (맨바닥부터!)
+    const p2 = BOSS_PHASE2;
+    const enDeck = buildDeck(p2.deck);
+    G.en = { hp:p2.hp, maxHp:p2.hp, energy:2, maxEnergy:2, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] };
+    // 내 상태 리셋 (체력은 유지, 필드·손패·에너지·덱은 새로)
+    const myDeck = buildPlayerDeck();
+    G.me.field = [];
+    G.me.deck = myDeck.slice(START_HAND);
+    G.me.hand = myDeck.slice(0, START_HAND);
+    G.me.energy = 1; G.me.maxEnergy = 1;
+    G.botMiss = p2.miss;
+    G.bossPhase = 2;
+    G.turn = "me"; busy=false;
+    sel={hand:null,attacker:null,mode:null};
+    log("☢️ 보스 2페이즈! 우라늄이 폭주하며 판을 쓸어버렸다!");
+    renderBattle();
+    fx("☢️ 2페이즈!", "#a3e635");
+  }, 2200);
+}
+
+// ============================================================
+// 카드 렌더
+// ============================================================
+function cardHTML(c, ctx, field){
+  const e = c; const g = gColor(e);
+  const eff = effAtk(c, field||[]); const buff = eff > c.atk;
+  const taunt = c.passive?.kind==="taunt" ? `<div class="taunt">🧲</div>` : "";
+  // 리튬 충전 표시 (필드에서, 충전값 있을 때)
+  let battery = "";
+  if(ctx!=="hand" && c.active?.kind==="battery" && !c.batteryDone){
+    battery = `<div class="battery-badge">🔋${c.charge||0}</div>`;
+  }
+  // 헬륨 불활성 남아있음 표시
+  let lastStand = "";
+  if(ctx!=="hand" && c.passive?.kind==="lastStand" && !c.lastStandUsed){
+    lastStand = `<div class="laststand-badge">✨</div>`;
+  }
+  // 방사능 오염 표시
+  let rad = "";
+  if(ctx!=="hand" && c.radTurns > 0){
+    rad = `<div class="rad-badge">☢️${c.radTurns}</div>`;
+  }
+  let cls="card", onclick="", cost="";
+
+  if(ctx==="hand"){
+    const realCost = costOf(c, G.me.field);
+    const afford = G.turn==="me" && !busy && realCost<=G.me.energy && G.me.field.length<FIELD_MAX;
+    cls += afford? " affordable":" notafford";
+    if(sel.hand===c.iid) cls+=" selected";
+    if(afford) onclick=`onclick="pickHand(${c.iid})"`;
+    cost = `<div class="cost ${realCost!==c.cost?'reduced':''}">${realCost}</div>`;
+  } else if(ctx==="my-field"){
+    // 회복 모드: 내 카드가 회복 대상
+    if(sel.mode==="heal" && c.iid!==sel.srcIid){
+      cls+=" targetable-heal"; onclick=`onclick="healTarget(${c.iid})"`;
+    } else {
+      const ready = G.turn==="me" && !busy && c.canAttack && !c.hasAttacked;
+      if(ready) cls+=" ready"; if(sel.attacker===c.iid) cls+=" selected";
+      if(!ready && sel.attacker!==c.iid) cls+=" dim";
+      if(ready) onclick=`onclick="pickAttacker(${c.iid})"`;
+    }
+  } else { // enemy-field
+    if(sel.mode==="blast"){
+      // 발화 모드: 상대 카드가 발화 대상 (도발 지킴)
+      if(tauntTargets(G.en.field).map(x=>x.iid).includes(c.iid)){
+        cls+=" targetable"; onclick=`onclick="blastTarget(${c.iid})"`;
+      }
+    } else {
+      let targetable=false;
+      if(G.turn==="me" && !busy && sel.attacker!=null){
+        const atkC = G.me.field.find(x=>x.iid===sel.attacker);
+        // 수은 침투: 도발 무시하고 아무나 공격 가능
+        if(atkC && atkC.passive?.kind==="infiltrate"){
+          targetable = true;
+        } else {
+          targetable = tauntTargets(G.en.field).map(x=>x.iid).includes(c.iid);
+        }
+      }
+      if(targetable){ cls+=" targetable"; onclick=`onclick="attackTarget(${c.iid})"`; }
+    }
+  }
+
+  const atkShow = (ctx==="hand") ? c.atk : eff;
+  const hpShow  = (ctx==="hand") ? c.hp  : c.curHp;
+  const tag = (ctx==="my-field" && !(G.turn==="me"&&!busy&&c.canAttack&&!c.hasAttacked) && sel.attacker!==c.iid)
+      ? `<div class="tag">${c.hasAttacked?"공격완료":(c.canAttack?"":"대기중")}</div>` : "";
+
+  // 능력 정보 → 마우스 올리면 하단 고정 툴팁에 표시
+  let hover = "";
+  if(e.passive){
+    hover = `onmouseenter="showTip('${e.passive.short}','${e.passive.label}',false)" onmouseleave="hideTip()"`;
+  } else if(e.active){
+    hover = `onmouseenter="showTip('${e.active.short}','${e.active.label}',true)" onmouseleave="hideTip()"`;
+  }
+
+  return `<div class="${cls}" ${onclick} ${hover}>
+    ${cost}${taunt}${battery}${lastStand}${rad}
+    <div class="band" style="background:${g.band}"></div>
+    <div class="inner">
+      <div class="topfill" style="background:linear-gradient(180deg, ${g.band}, transparent)"></div>
+      <div class="num">${e.number}</div>
+      <div class="sym">${e.symbol}</div>
+      <div class="nm">${elName(e.name)}</div>
+      <div class="pv">${e.passive?("✨ "+e.passive.short):(e.active?("💥 "+e.active.short):"")}</div>
+      ${tag}
+    </div>
+    <div class="stats">
+      <span class="atk ${buff?'buff':''}">⚔ ${atkShow}</span>
+      <span class="hp">❤ ${hpShow}</span>
+    </div>
+  </div>`;
+}
+
+// 하단 고정 툴팁
+function showTip(name, desc, isActive){
+  const t = document.getElementById("hovertip");
+  if(!t) return;
+  t.innerHTML = `<span class="ht-name ${isActive?'active':''}">${isActive?'💥':'✨'} ${name}</span><span class="ht-desc">${desc}</span>`;
+  t.classList.add("show");
+}
+function hideTip(){
+  const t = document.getElementById("hovertip");
+  if(t) t.classList.remove("show");
+}
+
+function renderBattle(){
+  if(!G) return;
+  hideTip();
+  const myTurn = G.turn==="me" && !busy;
+  const enField = G.en.field.length? G.en.field.map(c=>cardHTML(c,"enemy-field",G.en.field)).join("") : `<div class="empty">비어 있음</div>`;
+  const myField = G.me.field.length? G.me.field.map(c=>cardHTML(c,"my-field",G.me.field)).join("") : `<div class="empty">비어 있음</div>`;
+  const hand = G.me.hand.map(c=>cardHTML(c,"hand",G.me.field)).join("");
+  let faceBtn = "";
+  if(myTurn && sel.mode==="blast"){
+    // 발화 모드: 상대 카드 없으면 본체 발화 버튼
+    if(G.en.field.length===0){
+      faceBtn = `<button class="btn-danger" onclick="blastFace()">🔥 본체에 발화!</button>`;
+    }
+  } else if(myTurn && sel.attacker!=null){
+    const sc = G.me.field.find(c=>c.iid===sel.attacker);
+    const canFace = G.en.field.length===0 || (sc && sc.passive?.kind==="infiltrate");
+    if(canFace && sc && sc.canAttack && !sc.hasAttacked){
+      faceBtn = `<button class="btn-danger" onclick="attackFace()">상대 본체 공격 💥</button>`;
+    }
+  }
+  // 선택된 카드가 액티브 스킬 보유 시 스킬 버튼
+  let activeBtn = "";
+  if(myTurn && sel.attacker!=null){
+    const sc = G.me.field.find(c=>c.iid===sel.attacker);
+    if(sc && sc.active && sc.active.kind==="battery"){
+      // 리튬: 방출 안 했고 충전이 있으면 버튼 (소환턴에도 가능)
+      if(!sc.batteryDone){
+        const ch = sc.charge||0;
+        if(ch>0){
+          activeBtn = `<button class="btn-active" onclick="useActive(${sc.iid})">🔋 방출 (+${ch})</button>`;
+        } else {
+          activeBtn = `<button class="btn-disabled" disabled>🔋 충전 중... (${sc.chargeTick||0}/2)</button>`;
+        }
+      }
+    } else if(sc && sc.active && !sc.usedActive && sc.canAttack){
+      const iconMap = { poison:"☠️", heal:"💚", blast:"🔥", aoe:"💥", stun:"✨" };
+      const icon = iconMap[sc.active.kind] || "✨";
+      if(sc.active.kind==="poison" && poisonActive(G.me.field)){
+        activeBtn = `<button class="btn-disabled" disabled>☠️ 이미 독가스 퍼짐</button>`;
+      } else {
+        activeBtn = `<button class="btn-active" onclick="useActive(${sc.iid})">${icon} ${sc.active.short} (⚡${sc.active.energy})</button>`;
+      }
+    }
+  }
+  const summonBtn = (sel.hand!=null)
+    ? `<div class="center" style="margin-top:4px;"><button class="btn-primary" onclick="doSummon()">소환하기</button></div>` : "";
+
+  const enPct = Math.max(0,Math.min(100,G.en.hp/(G.en.maxHp||START_HP)*100));
+  const mePct = Math.max(0,Math.min(100,G.me.hp/START_HP*100));
+
+  document.getElementById("app").innerHTML = `
+    <div class="stage-bar">
+      <span>${G.versus ? "🤝 친구 대결" : (G.boss ? `☢️ 보스 ${G.bossPhase===2?"2페이즈":""}` : "🏆 "+STAGES[stage].label)}　·　턴 ${G.turnCount}</span>
+      <button class="exit-btn" onclick="confirmExit()">✕ 나가기</button>
+    </div>
+    <div class="zone en ${G.turn==='en'?'active-en':''}">
+      <div class="pbar">
+        <div class="who en">상대</div>
+        <div class="hpwrap"><div class="hpfill" id="hp-en" style="width:${enPct}%;background:var(--en)"></div>
+          <div class="hptext">❤️ ${Math.max(0,G.en.hp)} / ${G.en.maxHp||START_HP}</div></div>
+      </div>
+      <div class="field-label">상대 필드${poisonActive(G.me.field)?" ☠️ 독안개":""}</div>
+      <div class="field-row${poisonActive(G.me.field)?" poison-fog":""}">${enField}</div>
+    </div>
+
+    <div class="mid">${faceBtn} ${activeBtn}</div>
+
+    <div class="zone me ${myTurn?'active-me':''}">
+      <div class="field-label">내 필드 ${myTurn?"— 공격할 카드를 누르세요":""}${poisonActive(G.en.field)?" ☠️ 독안개":""}</div>
+      <div class="field-row${poisonActive(G.en.field)?" poison-fog":""}">${myField}</div>
+      <div class="pbar">
+        <div class="who me">나</div>
+        <div class="hpwrap"><div class="hpfill" id="hp-me" style="width:${mePct}%;background:var(--me)"></div>
+          <div class="hptext">❤️ ${Math.max(0,G.me.hp)} / ${START_HP}</div></div>
+        <div class="stat-mini e">⚡${G.me.energy}/${G.me.maxEnergy}</div>
+      </div>
+    </div>
+
+    <div class="hand-wrap">
+      <div class="field-label">내 손패 — 소환할 카드를 누르세요 (에너지 ⚡${G.me.energy}/${G.me.maxEnergy})</div>
+      <div class="hand-scroll">${hand}</div>
+      ${summonBtn}
+    </div>
+
+    <div class="controls">
+      <button class="${myTurn?'btn-primary':'btn-disabled'}" ${myTurn?'onclick="endTurn()"':'disabled'}>${G.turn==="me"?"턴 종료 ⏭️":"상대 턴..."}</button>
+    </div>
+    ${showLog ? '<div id="log"></div>' : ''}`;
+  const el=document.getElementById("log"); if(el){ el.innerHTML=logs.map(l=>`<div>${l}</div>`).join(""); el.scrollTop=el.scrollHeight; }
+}
+
+function flashHp(side){
+  const el=document.getElementById(side==="me"?"hp-me":"hp-en");
+  if(el){ el.classList.add("hit"); setTimeout(()=>el.classList.remove("hit"),400); }
+}
+
+// ============================================================
+// 플레이어 액션
+// ============================================================
+function pickHand(iid){ if(G.turn!=="me"||busy) return; sel.hand=(sel.hand===iid)?null:iid; sel.attacker=null; renderBattle(); }
+function pickAttacker(iid){ if(G.turn!=="me"||busy) return; sel.attacker=(sel.attacker===iid)?null:iid; sel.hand=null; renderBattle(); }
+
+function doSummon(){
+  if(G.turn!=="me"||busy||sel.hand==null) return;
+  const card = G.me.hand.find(c=>c.iid===sel.hand); if(!card) return;
+  if(G.me.field.length>=FIELD_MAX){ toast("필드가 가득 찼어요 (최대 5자리)"); return; }
+  const realCost = costOf(card, G.me.field);
+  if(realCost>G.me.energy){ toast("에너지가 부족해요"); return; }
+  G.me.energy -= realCost;
+  G.me.hand = G.me.hand.filter(c=>c.iid!==card.iid);
+  const newCard = {...card, canAttack:false, hasAttacked:false};
+  G.me.field.push(newCard);
+  log(`🔷 ${card.name}(${card.symbol}) 소환! ${realCost!==card.cost?`(탄소 촉매로 ${realCost} 소모)`:""}`);
+  fx(`${elName(card.name)} 소환!`, gColor(card).band); SFX.summon();
+  onSummon(newCard, G.me);   // 등장 효과 (칼슘 등)
+  sel.hand=null; renderBattle();
+  if(G.tutorial) tutoAdvance("summon");
+}
+
+// 등장 시 효과 (칼슘: 체력 최고 아군 강화)
+function onSummon(card, owner){
+  if(card.passive?.kind==="boneUp"){
+    // 자기 뺀 아군 중 현재 체력 최고 (동점이면 원소번호 빠른 애)
+    const others = owner.field.filter(c=>c.iid!==card.iid);
+    if(others.length===0) return;
+    let best = others[0];
+    others.forEach(c=>{
+      if(c.curHp > best.curHp || (c.curHp===best.curHp && c.number < best.number)) best = c;
+    });
+    best.maxHp = (best.maxHp||best.hp) + 1;
+    best.curHp += 1;
+    log(`🦴 ${card.name}이(가) ${best.name}의 체력을 올려줬어요! (❤${best.curHp})`);
+    fx(`🦴 ${elName(best.name)} 강화!`, "#facc15");
+  }
+}
+
+function attackTarget(targetIid){
+  if(G.turn!=="me"||busy||sel.attacker==null) return;
+  const aCard = G.me.field.find(c=>c.iid===sel.attacker);
+  const tCard = G.en.field.find(c=>c.iid===targetIid);
+  if(!aCard||!tCard||!aCard.canAttack||aCard.hasAttacked) return;
+  // 수은 침투가 아니면 도발 검사
+  if(aCard.passive?.kind!=="infiltrate" && !tauntTargets(G.en.field).map(x=>x.iid).includes(targetIid)){ toast("자석 방패! 철을 먼저 공격해야 해요 🧲"); return; }
+  fx(`⚔️ ${elName(aCard.name)} 공격!`, "#e0662f");
+  dealToUnit(aCard, tCard, G.me.field, G.en, "상대", "en");
+  aCard.hasAttacked=true; sel.attacker=null;
+  if(G && G.tutorial) tutoAdvance("attack");
+  if(checkEnd())return; renderBattle();
+}
+function attackFace(){
+  if(G.turn!=="me"||busy||sel.attacker==null) return;
+  const aCard = G.me.field.find(c=>c.iid===sel.attacker);
+  if(!aCard||!aCard.canAttack||aCard.hasAttacked) return;
+  // 수은 침투가 아니면, 상대 카드 있을 때 본체 공격 불가
+  if(aCard.passive?.kind!=="infiltrate" && G.en.field.length>0){ toast("상대 카드를 먼저 없애야 해요"); return; }
+  const dmg = effAtk(aCard, G.me.field); G.en.hp -= dmg;
+  log(`💥 ${aCard.name} → 상대 본체에 ${dmg} 데미지! (남은 ${Math.max(0,G.en.hp)})`);
+  fx(`💥 본체에 ${dmg}!`, "#ef4444"); SFX.pierce();
+  aCard.hasAttacked=true; sel.attacker=null;
+  renderBattle(); flashHp("en");
+  if(checkEnd())return;
+}
+function dealToUnit(aCard, tCard, atkField, defP, defName, defSide){
+  let dmg = effAtk(aCard, atkField);
+  const shield = shieldFor(tCard, defP.field);
+  const realDmg = Math.max(0, dmg - shield);
+  if(shield>0) log(`🛡️ 신선 보존! ${tCard.name} 데미지 ${shield} 감소`);
+  // 우라늄 접촉 오염: 공격자가 우라늄이면 대상 오염 / 대상이 우라늄이면 공격자 오염
+  if(aCard.passive?.kind==="radiation") contaminate(tCard);
+  if(tCard.passive?.kind==="radiation") contaminate(aCard);
+  const before = tCard.curHp; tCard.curHp -= realDmg;
+  if(tCard.curHp<=0){
+    // 헬륨 불활성: 죽을 데미지를 딱 한 번 체력 1로 버팀 (관통도 막음)
+    if(tCard.passive?.kind==="lastStand" && !tCard.lastStandUsed){
+      tCard.lastStandUsed = true;
+      tCard.curHp = 1;
+      log(`✨ 불활성! ${tCard.name}이(가) 체력 1로 버텼어요`);
+      fx(`✨ ${tCard.name} 불활성!`, "#a78bfa");
+      return;  // 관통 없음, 완전 방어
+    }
+    const overflow = realDmg - before;
+    log(`☠️ ${defName}의 ${tCard.name} 파괴됨!`);
+    onCardDeath(tCard, defP, aCard);  // 죽을 때 효과(리튬, 마그네슘 섬광 등)
+    defP.field = defP.field.filter(c=>c.iid!==tCard.iid);
+    if(overflow>0){ defP.hp -= overflow; log(`➡️ 관통! 넘친 ${overflow} 데미지가 본체로 (남은 ${Math.max(0,defP.hp)})`); fx(`💥 관통 ${overflow}!`, "#ef4444"); SFX.pierce(); setTimeout(()=>flashHp(defSide),60); }
+    else { fx(`☠️ ${tCard.name} 파괴`, "#6b7280"); SFX.hit(); }
+  } else {
+    log(`⚔️ ${aCard.name} → ${tCard.name}에게 ${realDmg} 데미지 (남은 ${tCard.curHp})`); SFX.hit();
+  }
+}
+
+// 우라늄 오염 걸기 (재오염 안 함: 이미 오염된 카드는 무시)
+function contaminate(card){
+  if(!card) return;
+  if(card.radTurns > 0) return;      // 이미 오염됨 → 갱신 안 함
+  if(card.passive?.kind==="radiation") return; // 우라늄끼리는 오염 안 됨
+  if(card.passive?.kind==="immune"){ log(`✨ ${card.name}은(는) 방사능도 튕겨냈어요!`); return; } // 금 면역
+  card.radTurns = 2;
+  log(`☢️ ${card.name}이(가) 방사능에 오염됐어요! (2턴간 매턴 2씩)`);
+  fx(`☢️ ${elName(card.name)} 오염!`, "#a3e635");
+}
+
+// 카드가 죽을 때 효과
+function onCardDeath(card, owner, killer){
+  // 오염된 카드가 3턴 전에 죽으면 남은 피해가 본체로
+  if(card.radTurns > 0){
+    const dmg = card.radTurns * 2;
+    owner.hp -= dmg;
+    log(`☢️ ${card.name}의 남은 방사능이 본체로! ${dmg} 피해`);
+    fx(`☢️ 방사능이 본체로 ${dmg}!`, "#a3e635"); SFX.pierce();
+    const side = (G && owner===G.me) ? "me" : "en";
+    setTimeout(()=>flashHp(side), 60);
+  }
+}
+
+// 액티브 스킬 발동 (나트륨 물 폭발)
+function useActive(iid){
+  if(G.turn!=="me"||busy) return;
+  const card = G.me.field.find(c=>c.iid===iid);
+  if(!card || !card.active) return;
+  const act = card.active;
+  if(card.usedActive){ toast("이미 이 카드의 스킬을 썼어요"); return; }
+  if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
+  if(act.kind==="aoe"){
+    if(G.en.field.length===0){ toast("폭발시킬 상대 카드가 없어요"); return; }
+    G.me.energy -= act.energy;
+    card.usedActive = true;
+    fx(`💥 ${elName(card.name)} 물 폭발!`, "#fb923c"); SFX.explode();
+    log(`💥 ${card.name} 물 폭발! 상대 전체에 ${act.value} 데미지`);
+    // 상대 전체에 데미지 (관통 없음, 단순 광역)
+    const targets = [...G.en.field];
+    targets.forEach(t=>{
+      t.curHp -= act.value;
+      if(t.curHp<=0){ log(`☠️ 상대의 ${t.name} 파괴됨!`); }
+    });
+    G.en.field = G.en.field.filter(t=>t.curHp>0);
+  } else if(act.kind==="stun"){
+    // 마그네슘 섬광: 상대 카드 전체 다음 턴 공격 불가
+    if(G.en.field.length===0){ toast("섬광을 비출 상대 카드가 없어요"); return; }
+    G.me.energy -= act.energy;
+    card.usedActive = true;
+    G.en.field.forEach(t=>{ t.flashStunned = true; });
+    fx(`✨ ${elName(card.name)} 섬광!`, "#facc15"); SFX.explode();
+    log(`✨ ${card.name} 섬광! 상대 카드 전체가 다음 턴 공격할 수 없어요`);
+  } else if(act.kind==="poison"){
+    G.me.energy -= act.energy;
+    card.usedActive = true;
+    card.poisonOn = true;   // 이 염소가 상대에게 독을 켠 주체
+    fx(`☠️ ${elName(card.name)} 독가스!`, "#4ade80"); SFX.poison();
+    log(`☠️ ${card.name} 독가스! 상대 전체가 매 턴 ${act.value}씩 중독돼요`);
+  } else if(act.kind==="battery"){
+    // 리튬 방출: 충전한 만큼 에너지 획득, 이후 충전 정지
+    const charged = card.charge || 0;
+    if(charged <= 0){ toast("아직 충전된 에너지가 없어요"); return; }
+    G.me.energy += charged;   // 최대치(6) 초과 허용
+    card.charge = 0;
+    card.batteryDone = true;  // 이후 충전 안 함
+    card.usedActive = true;
+    fx(`🔋 ${elName(card.name)} 방출! +${charged}`, "#fbbf24"); SFX.summon();
+    log(`🔋 ${card.name}이(가) 에너지 ${charged}를 방출했어요! (현재 ⚡${G.me.energy})`);
+  } else if(act.kind==="heal"){
+    // 칼륨 회복: 아군 하나 선택 (대상 선택 모드)
+    if(G.me.field.length<=1){ toast("회복할 아군이 없어요"); return; }
+    sel = { hand:null, attacker:null, mode:"heal", srcIid:iid };
+    toast("회복할 아군을 골라요");
+    renderBattle();
+    return;
+  } else if(act.kind==="blast"){
+    // 인 발화: 대상 선택 모드 (상대 카드 없으면 본체 발화 버튼이 뜸)
+    sel = { hand:null, attacker:null, mode:"blast", srcIid:iid };
+    toast(G.en.field.length===0 ? "본체에 발화할 수 있어요!" : "발화로 태울 상대를 골라요");
+    renderBattle();
+    return;
+  }
+  sel={hand:null,attacker:null,mode:null};
+  if(checkEnd())return; renderBattle();
+}
+
+// 칼륨 회복: 아군 대상 클릭
+function healTarget(iid){
+  if(G.turn!=="me"||busy||sel.mode!=="heal") return;
+  const src = G.me.field.find(c=>c.iid===sel.srcIid);
+  const tgt = G.me.field.find(c=>c.iid===iid);
+  if(!src||!tgt) return;
+  if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  const maxHp = tgt.maxHp||tgt.hp;
+  if(tgt.curHp>=maxHp){ toast("이미 체력이 가득해요"); return; }
+  G.me.energy -= src.active.energy;
+  tgt.curHp = Math.min(maxHp, tgt.curHp + src.active.value);
+  log(`💚 ${src.name}이(가) ${tgt.name}의 체력을 회복시켰어요 (❤${tgt.curHp})`);
+  fx(`💚 ${elName(tgt.name)} 회복!`, "#4ade80"); SFX.summon();
+  sel={hand:null,attacker:null,mode:null}; renderBattle();
+}
+// 인 발화: 상대 대상 클릭
+function blastTarget(iid){
+  if(G.turn!=="me"||busy||sel.mode!=="blast") return;
+  const src = G.me.field.find(c=>c.iid===sel.srcIid);
+  const tgt = G.en.field.find(c=>c.iid===iid);
+  if(!src||!tgt) return;
+  // 발화도 도발(철) 지킴 — 철 있으면 철부터
+  if(!tauntTargets(G.en.field).map(x=>x.iid).includes(iid)){ toast("자석 방패! 철을 먼저 노려야 해요 🧲"); return; }
+  if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  G.me.energy -= src.active.energy;
+  src.usedActive = true;
+  const dmg = src.active.value;
+  fx(`🔥 ${elName(src.name)} 발화!`, "#fb923c"); SFX.explode();
+  log(`🔥 ${src.name} 발화! ${tgt.name}에게 ${dmg} 피해`);
+  const before = tgt.curHp; tgt.curHp -= dmg;
+  if(tgt.curHp<=0){
+    if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){
+      tgt.lastStandUsed=true; tgt.curHp=1;
+      log(`✨ 불활성! ${tgt.name}이(가) 버텼어요`);
+    } else {
+      const overflow = dmg - before;
+      log(`☠️ 상대의 ${tgt.name} 파괴됨!`);
+      onCardDeath(tgt, G.en, src);
+      G.en.field = G.en.field.filter(c=>c.iid!==tgt.iid);
+      if(overflow>0){ G.en.hp -= overflow; log(`➡️ 관통! 넘친 ${overflow} 데미지가 본체로`); }
+    }
+  }
+  sel={hand:null,attacker:null,mode:null};
+  if(checkEnd())return; renderBattle();
+}
+
+// 인 발화: 본체 직접 (상대 카드 없을 때)
+function blastFace(){
+  if(G.turn!=="me"||busy||sel.mode!=="blast") return;
+  const src = G.me.field.find(c=>c.iid===sel.srcIid);
+  if(!src) return;
+  if(G.en.field.length>0){ toast("상대 카드를 먼저 없애야 해요"); return; }
+  if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  G.me.energy -= src.active.energy;
+  src.usedActive = true;
+  const dmg = src.active.value;
+  G.en.hp -= dmg;
+  fx(`🔥 본체에 발화 ${dmg}!`, "#fb923c"); SFX.explode();
+  log(`🔥 ${src.name} 발화! 상대 본체에 ${dmg} 피해`);
+  setTimeout(()=>flashHp("en"), 60);
+  sel={hand:null,attacker:null,mode:null};
+  if(checkEnd())return; renderBattle();
+}
+
+// 해당 필드(공격자 진영)에 독을 켠 염소가 살아있는지 → 상대가 중독 상태인지
+function poisonActive(attackerField){
+  return attackerField.some(c=>c.poisonOn && c.active?.kind==="poison");
+}
+// 중독 데미지 적용: defField(중독된 쪽) 카드들이 1씩 깎임, 금은 면역
+function applyPoison(atkField, defP, defName, defSide){
+  if(!poisonActive(atkField)) return;
+  const dmg = 1;
+  const hit = [];
+  defP.field.forEach(t=>{
+    if(t.passive?.kind==="immune"){ return; } // 금 면역
+    t.curHp -= dmg; hit.push(t.name);
+  });
+  const dead = defP.field.filter(t=>t.curHp<=0);
+  dead.forEach(t=>log(`☠️ ${defName}의 ${t.name}이(가) 중독으로 쓰러졌어요!`));
+  defP.field = defP.field.filter(t=>t.curHp>0);
+  if(hit.length){ fx(`☠️ 독 데미지!`, "#4ade80"); SFX.poison(); }
+}
+
+// 방사능 오염 데미지: 오염된 카드가 매턴 2씩, 3턴. side의 필드 처리
+function applyRadiation(P, sideName, sideKey){
+  let any=false;
+  P.field.forEach(t=>{
+    if(t.radTurns > 0){
+      t.curHp -= 2; t.radTurns -= 1; any=true;
+    }
+  });
+  if(any){ fx(`☢️ 방사능 피해!`, "#a3e635"); }
+  // 오염으로 죽은 카드 처리 (죽으면 남은 피해 본체로) — fx 나중에 떠서 안 덮임
+  const dead = P.field.filter(t=>t.curHp<=0);
+  dead.forEach(t=>{
+    log(`☢️ ${sideName}의 ${t.name}이(가) 방사능으로 쓰러졌어요!`);
+    onCardDeath(t, P, null);
+  });
+  P.field = P.field.filter(t=>t.curHp>0);
+}
+
+// ============================================================
+// 턴 진행
+// ============================================================
+async function endTurn(){
+  if(G.turn!=="me"||busy) return;
+  sel={hand:null,attacker:null,mode:null}; log("— 당신의 턴 종료 —");
+  G.turn="en"; busy=true; renderBattle();
+  fx("상대 턴", "#ef4444");
+  try{
+    await enemyTurn();
+  }catch(err){
+    // 봇 턴 중 에러가 나도 멈추지 않고 내 턴으로 복구
+    console.error("봇 턴 오류:", err);
+    if(G){
+      G.me.maxEnergy = Math.min(MAX_ENERGY, G.me.maxEnergy+1); G.me.energy = G.me.maxEnergy;
+      drawFor(G.me, "당신");
+      G.me.field.forEach(c=>{ c.canAttack=true; c.hasAttacked=false; c.flashStunned=false; });
+      G.turn="me"; G.turnCount++; busy=false;
+      renderBattle();
+    }
+  }
+}
+
+async function enemyTurn(){
+  await wait(700);
+  if(!G) return;
+  // === 튜토리얼 전용 봇 (봐주기) ===
+  if(G.tutorial){
+    await tutoEnemyTurn();
+    return;
+  }
+  // 상대 턴 시작: 상대 카드가 중독됐으면(내 염소가 독 켬) 데미지
+  if(poisonActive(G.me.field)){
+    applyPoison(G.me.field, G.en, "상대", "en");
+    renderBattle();
+    if(checkEnd()) return;
+    await wait(600);
+    if(!G) return;
+  }
+  // 상대 카드 방사능 오염 피해
+  applyRadiation(G.en, "상대", "en");
+  renderBattle();
+  if(checkEnd()) return;
+  G.en.maxEnergy = Math.min(MAX_ENERGY, G.en.maxEnergy+1); G.en.energy = G.en.maxEnergy;
+  drawFor(G.en, "상대");
+  G.en.field.forEach(c=>{
+    if(c.flashStunned){ c.canAttack=false; c.hasAttacked=true; c.flashStunned=false; }
+    else { c.canAttack=true; c.hasAttacked=false; }
+  });
+  renderBattle(); await wait(500);
+  if(!G) return;
+
+  let guard=0;
+  while(guard++<12){
+    if(!G) return;
+    if(G.en.field.length>=FIELD_MAX) break;
+    let playable = G.en.hand.map(c=>({c,rc:costOf(c,G.en.field)})).filter(x=>x.rc<=G.en.energy).sort((a,b)=>b.rc-a.rc);
+    // 친구 대결: 에이스는 아껴둠 (필드 아군 2개 이상 or 체력 17 이하일 때만 소환)
+    if(G.versus && G.versusAce){
+      const canPlayAce = G.en.field.length>=2 || G.en.hp<=17;
+      if(!canPlayAce){
+        playable = playable.filter(x=>x.c.key!==G.versusAce);
+      }
+    }
+    if(!playable.length) break;
+    const {c,rc}=playable[0]; G.en.energy-=rc;
+    G.en.hand = G.en.hand.filter(x=>x.iid!==c.iid);
+    const bcard = {...c, canAttack:false, hasAttacked:false};
+    G.en.field.push(bcard);
+    log(`🔶 상대가 ${c.name}(${c.symbol}) 소환!`);
+    onSummon(bcard, G.en);
+    renderBattle(); await wait(500);
+  }
+  if(!G) return;
+
+  // 봇 나트륨 액티브: 내 카드가 2개 이상이고 실수 안 할 때 발동
+  const botMiss = G.botMiss || 0.5;
+  const naField = G.en.field.filter(c=>c.active?.kind==="aoe" && !c.usedActive && c.canAttack);
+  for(const na of naField){
+    if(!G) return;
+    if(G.me.field.length>=2 && na.active.energy<=G.en.energy){
+      await wait(500);
+      if(!G) return;
+      G.en.energy -= na.active.energy; na.usedActive=true;
+      fx(`💥 상대 ${elName(na.name)} 물 폭발!`, "#fb923c"); SFX.explode();
+      log(`💥 상대 ${na.name} 물 폭발! 당신 전체에 ${na.active.value} 데미지`);
+      G.me.field.forEach(t=>{ t.curHp -= na.active.value; if(t.curHp<=0) log(`☠️ 당신의 ${t.name} 파괴됨!`); });
+      G.me.field = G.me.field.filter(t=>t.curHp>0);
+      renderBattle();
+      if(checkEnd()) return;
+    }
+  }
+
+  // 봇 마그네슘 섬광: 내 카드가 2개 이상일 때 전체 스턴
+  const mgField = G.en.field.filter(c=>c.active?.kind==="stun" && !c.usedActive && c.canAttack);
+  for(const mg of mgField){
+    if(!G) return;
+    if(G.me.field.length>=2 && mg.active.energy<=G.en.energy){
+      await wait(500);
+      if(!G) return;
+      G.en.energy -= mg.active.energy; mg.usedActive=true;
+      G.me.field.forEach(t=>{ t.flashStunned=true; });
+      fx(`✨ 상대 ${elName(mg.name)} 섬광!`, "#facc15"); SFX.explode();
+      log(`✨ 상대 ${mg.name} 섬광! 당신 카드 전체가 다음 턴 공격할 수 없어요`);
+      renderBattle();
+    }
+  }
+
+  // 봇 염소 액티브: 내 카드가 1개 이상, 독 안 깔렸고, 실수 안 할 때
+  const clField = G.en.field.filter(c=>c.active?.kind==="poison" && !c.usedActive && c.canAttack);
+  for(const cl of clField){
+    if(!G) return;
+    if(G.me.field.length>=1 && !poisonActive(G.en.field) && cl.active.energy<=G.en.energy){
+      await wait(500);
+      if(!G) return;
+      G.en.energy -= cl.active.energy; cl.usedActive=true; cl.poisonOn=true;
+      fx(`☠️ 상대 ${elName(cl.name)} 독가스!`, "#4ade80"); SFX.poison();
+      log(`☠️ 상대 ${cl.name} 독가스! 당신 전체가 매 턴 중독돼요`);
+      renderBattle();
+    }
+  }
+
+  // 봇 리튬 방출: 충전 있으면 방출해서 에너지 확보 (센 카드 내려고)
+  const liField = G.en.field.filter(c=>c.active?.kind==="battery" && !c.batteryDone && (c.charge||0)>0);
+  for(const li of liField){
+    if(!G) return;
+    {
+      await wait(400);
+      if(!G) return;
+      G.en.energy += li.charge; li.charge=0; li.batteryDone=true;
+      log(`🔋 상대 ${li.name} 방출! 에너지 획득`);
+      fx(`🔋 상대 ${elName(li.name)} 방출!`, "#fbbf24");
+      renderBattle();
+    }
+  }
+
+  // 봇 인 발화: 가장 위협적인 내 카드(체력 높은 것) 저격, 없으면 본체
+  const pField = G.en.field.filter(c=>c.active?.kind==="blast" && !c.usedActive && c.canAttack);
+  for(const p of pField){
+    if(!G) return;
+    if(p.active.energy<=G.en.energy){
+      await wait(500);
+      if(!G) return;
+      const dmg = p.active.value;
+      // 도발 있으면 도발부터, 아니면 체력 높은 카드, 카드 없으면 본체
+      const pool = tauntTargets(G.me.field);
+      if(pool.length>0){
+        let tgt = pool.reduce((a,b)=>b.curHp>a.curHp?b:a);
+        G.en.energy -= p.active.energy; p.usedActive=true;
+        fx(`🔥 상대 ${elName(p.name)} 발화!`, "#fb923c"); SFX.explode();
+        log(`🔥 상대 ${p.name} 발화! ${tgt.name}에게 ${dmg} 피해`);
+        const before=tgt.curHp; tgt.curHp-=dmg;
+        if(tgt.curHp<=0){
+          if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){ tgt.lastStandUsed=true; tgt.curHp=1; }
+          else { onCardDeath(tgt,G.me,p); G.me.field=G.me.field.filter(x=>x.iid!==tgt.iid); const of=dmg-before; if(of>0)G.me.hp-=of; }
+        }
+      } else {
+        G.en.energy -= p.active.energy; p.usedActive=true;
+        G.me.hp -= dmg;
+        fx(`🔥 상대 발화! 본체 ${dmg}!`, "#fb923c"); SFX.explode();
+        log(`🔥 상대 ${p.name} 발화! 당신 본체에 ${dmg} 피해`);
+        flashHp("me");
+      }
+      renderBattle();
+      if(checkEnd()) return;
+    }
+  }
+
+  // 봇 칼륨 회복: 다친 아군이 있으면 회복
+  const kField = G.en.field.filter(c=>c.active?.kind==="heal" && c.canAttack);
+  for(const k of kField){
+    if(!G) return;
+    if(k.active.energy<=G.en.energy){
+      const hurt = G.en.field.filter(t=>t.curHp < (t.maxHp||t.hp));
+      if(hurt.length>0){
+        const tgt = hurt.reduce((a,b)=> (a.maxHp||a.hp)-a.curHp > (b.maxHp||b.hp)-b.curHp ? a:b); // 제일 많이 다친
+        await wait(400);
+        if(!G) return;
+        G.en.energy -= k.active.energy;
+        tgt.curHp = Math.min(tgt.maxHp||tgt.hp, tgt.curHp + k.active.value);
+        log(`💚 상대 ${k.name} 회복! ${tgt.name} 체력 회복`);
+        fx(`💚 상대 ${elName(tgt.name)} 회복!`, "#4ade80");
+        renderBattle();
+      }
+    }
+  }
+
+  const attackers = G.en.field.filter(c=>c.canAttack && !c.hasAttacked);
+  for(const aCard of attackers){
+    if(!G) return; await wait(550);
+    const live = G.en.field.find(c=>c.iid===aCard.iid); if(!live||live.hasAttacked) continue;
+    if(G.me.field.length===0){
+      const dmg = effAtk(live, G.en.field); G.me.hp -= dmg;
+      log(`💥 상대 ${live.name} → 당신 본체에 ${dmg} 데미지! (남은 ${Math.max(0,G.me.hp)})`);
+      fx(`💥 내 본체에 ${dmg}!`, "#ef4444"); SFX.pierce();
+      renderBattle(); flashHp("me");
+    } else if(live.passive?.kind==="infiltrate"){
+      // 수은 침투: 도발 무시하고 본체 직접 (7스테 컨셉)
+      const dmg = effAtk(live, G.en.field); G.me.hp -= dmg;
+      log(`🩸 상대 ${live.name}이(가) 방어를 뚫고 본체에 ${dmg} 데미지!`);
+      fx(`🩸 침투! 본체에 ${dmg}!`, "#c084fc"); SFX.pierce();
+      renderBattle(); flashHp("me");
+    } else {
+      // 도발 우선, 그 안에서 대상 선택
+      const pool = tauntTargets(G.me.field);
+      let tCard;
+      if(Math.random() < botMiss){
+        tCard = pool[0];
+      } else {
+        const dmg = effAtk(live, G.en.field);
+        const killable = pool.filter(t=>{ const sh=shieldFor(t,G.me.field); return (dmg-sh)>=t.curHp; });
+        const buffers = pool.filter(t=>t.passive?.kind==="allyAtkUp"||t.passive?.kind==="shield"||t.passive?.kind==="costDown");
+        if(killable.length){ killable.sort((a,b)=>b.curHp-a.curHp); tCard=killable[0]; }
+        else if(buffers.length){ tCard=buffers[0]; }
+        else { tCard=[...pool].sort((a,b)=>a.curHp-b.curHp)[0]; }
+      }
+      // 안전장치: 대상이 없으면(필드가 방금 비었으면) 본체 공격
+      if(!tCard){
+        const dmg = effAtk(live, G.en.field); G.me.hp -= dmg;
+        log(`💥 상대 ${live.name} → 당신 본체에 ${dmg} 데미지!`);
+        fx(`💥 내 본체에 ${dmg}!`, "#ef4444"); SFX.pierce();
+        renderBattle(); flashHp("me");
+      } else {
+        fx(`⚔️ 상대 ${elName(live.name)} 공격!`, "#e0662f");
+        dealToUnit(live, tCard, G.en.field, G.me, "당신", "me");
+        renderBattle();
+      }
+    }
+    live.hasAttacked=true;
+    if(checkEnd()) return;
+  }
+  await wait(600);
+  if(!G) return;
+  log("— 상대 턴 종료 —");
+  G.me.maxEnergy = Math.min(MAX_ENERGY, G.me.maxEnergy+1); G.me.energy = G.me.maxEnergy;
+  drawFor(G.me, "당신");
+  G.me.field.forEach(c=>{
+    if(c.flashStunned){ c.canAttack=false; c.hasAttacked=true; c.flashStunned=false; }
+    else { c.canAttack=true; c.hasAttacked=false; }
+  });
+  G.turn="me"; G.turnCount++; busy=false;
+  // 리튬 충전: 내 필드의 리튬이 2턴마다 +1 (최대 3), 방출한 리튬은 충전 안 함
+  G.me.field.forEach(c=>{
+    if(c.active?.kind==="battery" && !c.batteryDone){
+      c.chargeTick = (c.chargeTick||0) + 1;
+      if(c.chargeTick >= 2){
+        c.chargeTick = 0;
+        c.charge = Math.min(3, (c.charge||0) + 1);
+      }
+    }
+  });
+  log(`🔵 당신의 턴 ${G.turnCount}! (에너지 ⚡${G.me.maxEnergy})`);
+  renderBattle();
+  fx("내 턴!", "#3b82f6");
+  // 내 턴 시작: 내 카드가 중독됐으면(상대 염소가 독 켬) 데미지
+  if(poisonActive(G.en.field)){
+    setTimeout(()=>{
+      if(!G || G.turn!=="me") return;
+      applyPoison(G.en.field, G.me, "당신", "me");
+      renderBattle();
+      checkEnd();
+    }, 700);
+  }
+  // 내 카드 방사능 오염 피해
+  setTimeout(()=>{
+    if(!G || G.turn!=="me") return;
+    applyRadiation(G.me, "당신", "me");
+    renderBattle();
+    checkEnd();
+  }, 750);
+}
+
+function drawFor(p, who){
+  if(p.deck.length===0){ p.deck = (who==="당신") ? buildPlayerDeck() : buildDeck(STAGES[stage].deck); log(`🔄 ${who} 덱을 다시 섞었어요`); }
+  const card = p.deck.shift();
+  if(card){ if(p.hand.length<HAND_MAX) p.hand.push(card); else log(`✋ ${who} 손패가 가득 차 카드를 버렸어요`); }
+}
+
+// ============================================================
+// 승패
+// ============================================================
+function checkEnd(){
+  if(!G) return false;
+  if(G.en.hp<=0){
+    if(G.tutorial){ finishTutorial(false); return true; }
+    if(G.versus){ showVersusWin(); return true; }
+    // 보스 1페이즈 클리어 → 가짜 클리어 화면 (로비 누르면 2페이즈)
+    if(G.boss && G.bossPhase===1){ showBossFakeClear(); return true; }
+    showResult(true); return true;
+  }
+  if(G.me.hp<=0){
+    if(G.tutorial){ return false; }
+    if(G.versus){ showVersusLose(); return true; }
+    showResult(false); return true;
+  }
+  return false;
+}
+// 친구 대결 승리 → 인증 화면 (코드 + 내 덱 + 턴 수)
+function showVersusWin(){
+  busy=true;
+  fx("🎉 승리!", "#22c55e"); SFX.win();
+  const code = G.versusCode;
+  const turns = G.turnCount;
+  const myKeys = activeDeckKeys();
+  const myChips = myKeys.map(k=>chipHTML(k)).join("");
+  G=null;
+  setTimeout(()=>{
+    document.getElementById("app").innerHTML = `<div id="result">
+      <h1>🏆 대결 승리!</h1>
+      <div class="win-cert">
+        <div style="font-size:15px;font-weight:800;color:#a78bfa;">"${code}" 덱을 이겼어요!</div>
+        <div style="font-size:13px;color:var(--ink-soft);margin:8px 0;">⏱️ ${turns}턴 만에 승리</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">내 덱</div>
+        <div class="win-deck">${myChips}</div>
+      </div>
+      <p class="subtitle" style="font-size:12px;">화면을 캡처해서 자랑하세요! 📸</p>
+      <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
+        <button class="btn-primary" onclick="showVersus()">또 대결</button>
+        <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
+    </div>`;
+  }, 900);
+}
+// 친구 대결 패배
+function showVersusLose(){
+  busy=true;
+  fx("💀 패배...", "#ef4444"); SFX.lose();
+  const code = G.versusCode;
+  G=null;
+  setTimeout(()=>{
+    document.getElementById("app").innerHTML = `<div id="result">
+      <h1>💀 패배...</h1>
+      <p class="subtitle">"${code}" 덱에게 졌어요.<br>덱을 바꿔서 다시 도전해보세요!</p>
+      <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
+        <button class="btn-primary" onclick="showEnterCode()">다시 도전</button>
+        <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
+    </div>`;
+  }, 900);
+}
+function showResult(win){
+  busy=true;
+  fx(win?"🎉 승리!":"💀 패배...", win?"#22c55e":"#ef4444"); if(win) SFX.win(); else SFX.lose();
+  const st = STAGES[stage];
+  const isFinal = stage >= MAX_STAGE;
+  const fromMap = !!(G && G.fromMap);   // 맵에서 골라 온 판인지 (G=null 되기 전 백업)
+  const fromMapStage = stage;
+
+  // 승리 시 코인 지급 (첫 클리어 vs 반복)
+  let moleGain = 0;
+  let justUnlockedGacha = false;
+  let bossReward = false;
+  const firstClear = win && !clearedStages[stage];
+  if(win){
+    moleGain = firstClear ? (STAGE_MOLE[stage]||100) : (STAGE_MOLE_REPEAT[stage]||80);
+    mole += moleGain;
+    clearedStages[stage] = true;
+    if(!gachaUnlocked){ gachaUnlocked = true; justUnlockedGacha = true; }
+    // 보스(10스테) 첫 클리어 → 우라늄 지급
+    if(st.boss && !owned.includes("U")){ owned.push("U"); bossReward=true; }
+    saveGame();
+  }
+
+  // 보상 후보 중 아직 안 가진 것
+  const rewardPool = (win && st.reward) ? st.reward.filter(k=>!owned.includes(k)) : [];
+
+  G=null;
+  setTimeout(()=>{
+    const moleMsg = moleGain>0 ? `<div style="color:#5eead4;font-size:14px;font-weight:800;margin:8px 0;">🪙 코인 +${moleGain} (보유 ${mole})</div>` : "";
+    const unlockMsg = justUnlockedGacha ? `<div class="unlock-banner">🎰 <b>뽑기가 열렸어요!</b><br><span style="font-size:12px;font-weight:400;">로비에서 코인으로 새 원소를 뽑을 수 있어요.<br>같은 원소가 나오면 💎 에너지 결정으로 바뀌고, 20개를 모으면 원하는 원소로 바꿀 수 있어요!</span></div>` : "";
+    const isFinalStage = stage >= MAX_STAGE;
+    // 맵에서 온 판: 다시하기 / 맵으로 / 로비로
+    // 진행 중인 판: 다음 스테이지 / 다시하기
+    let choiceBtns;
+    if(fromMap){
+      choiceBtns = `<div style="margin-top:20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn-primary" onclick="playSpecificStage(${fromMapStage})">다시 하기 🔄</button>
+        <button class="btn-ghost" onclick="showStageMap()">🗺️ 스테이지</button>
+        <button class="btn-ghost" onclick="showTitle()">로비로</button></div>`;
+    } else {
+      const nextBtn = isFinalStage
+        ? `<button class="btn-ghost" onclick="showTitle()">로비로 →</button>`
+        : `<button class="btn-primary" onclick="goNextStage()">다음 스테이지 →</button>`;
+      choiceBtns = `<div style="margin-top:20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        ${nextBtn}<button class="btn-ghost" onclick="startBattle()">다시 하기 🔄</button></div>`;
+    }
+
+    if(win && rewardPool.length >= 2){
+      // 택1 보상 (카드 고르면 다음 진행)
+      const cards = rewardPool.map(k=>{
+        const e=ELEMENTS[k];
+        const desc = e.passive ? e.passive.label : (e.active ? e.active.label : "특별한 능력이 없어요");
+        const skillName = e.passive ? ('✨ '+e.passive.short) : (e.active ? ('💥 '+e.active.short) : '능력 없음');
+        return `<div class="reward-pick" onclick="pickReward('${k}')">
+          ${chipHTML(k)}
+          <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">⚡${e.cost} · ⚔${e.atk} · ❤${e.hp}</div>
+          <div style="font-size:11px;color:#9be3c4;margin-top:4px;font-weight:700;">${skillName}</div>
+          <div class="reward-desc">${desc}</div>
+        </div>`;
+      }).join("");
+      document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 스테이지 클리어!</h1>
+        ${moleMsg}${unlockMsg}
+        <p class="subtitle">보상을 하나 골라요! (하나만 받을 수 있어요)</p>
+        <div class="reward-choices">${cards}</div>
+        <div class="ver">v0.21</div></div>`;
+    } else if(win && rewardPool.length === 1){
+      // 단일 보상 + 다시/다음
+      owned.push(rewardPool[0]); saveGame();
+      const e=ELEMENTS[rewardPool[0]];
+      const rewardHTML = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">새 원소 카드 획득! 🎁</div>
+        <div style="display:flex;justify-content:center;">${chipHTML(rewardPool[0])}</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">⚡${e.cost} · ⚔${e.atk} · ❤${e.hp}${e.passive?` · ✨${e.passive.short}`:(e.active?` · 💥${e.active.short}`:"")}</div></div>`;
+      document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 스테이지 클리어!</h1>
+        ${rewardHTML}${moleMsg}${unlockMsg}
+        ${choiceBtns}
+        <div class="ver">v0.21</div></div>`;
+    } else if(win && isFinalStage && firstClear){
+      // 보스 첫 클리어 = 축하 + 우라늄
+      const uReward = bossReward ? `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
+        <div style="display:flex;justify-content:center;">${chipHTML("U")}</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">⚡4 · ⚔1 · ❤4 · ☢️방사능 오염</div></div>` : "";
+      document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 보스 격파!</h1>
+        <p class="subtitle">보스를 물리쳤어요! 축하합니다! 🎉<br>이제 여기서 코인을 벌며 원소를 모아봐요</p>
+        ${uReward}${moleMsg}${unlockMsg}
+        <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+          <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
+          <button class="btn-ghost" onclick="showTitle()">로비로 →</button></div>
+        <div class="ver">v0.21</div></div>`;
+    } else if(win){
+      // 보상 없음 (반복 클리어 등) + 다시/다음
+      document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 ${isFinalStage?"승리!":"스테이지 클리어!"}</h1>
+        ${moleMsg}${unlockMsg}
+        ${choiceBtns}
+        <div class="ver">v0.21</div></div>`;
+    } else {
+      // 패배
+      document.getElementById("app").innerHTML = `<div id="result"><h1>💀 패배...</h1>
+        <p class="subtitle">${st.label}에 다시 도전해보세요!</p>
+        <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+          <button class="btn-primary" onclick="startBattle()">다시 도전 🔄</button>
+          <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
+        <div class="ver">v0.21</div></div>`;
+    }
+  }, 900);
+}
+
+// 택1 보상 선택 (고르면 다음 스테이지로)
+function pickReward(key){
+  if(!owned.includes(key)){ owned.push(key); saveGame(); }
+  SFX.summon();
+  goNextStage();
+}
+// 다음 스테이지로 (로비를 거침 - 덱/뽑기 손볼 기회)
+function goNextStage(){
+  if(stage < MAX_STAGE){ stage++; }
+  if(stage > maxStage) maxStage = stage;  // 진행도 갱신
+  saveGame();
+  showTitle();
+}
+
+function nextStage(){
+  if(stage < MAX_STAGE){ stage++; }
+  if(stage > maxStage) maxStage = stage;
+  saveGame();
+  showTitle();
+}
+function resetGame(){
+  stage = 1; maxStage = 1;
+  owned = ["H","O","N","C"];
+  deckKeys = null;
+  mole = 0; crystal = 0; gachaUnlocked = false; clearedStages = {}; gachaCount = 0;
+  tutoDone = false; tutoStep = 0;
+  hideTutoGuide();
+  clearSave();
+  slideIdx = 0;
+  renderTutorial();  // 초기화하면 튜토리얼(슬라이드)부터 다시
+}
+
+// 전투 중 나가기 (화면 확인 방식)
+function confirmExit(){
+  if(G.turn!=="me"||busy){ toast("상대 턴에는 나갈 수 없어요"); return; }
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:50px;">
+      <h1 style="font-size:26px;">🚪 전투 나가기</h1>
+      <div class="settings-box" style="text-align:center;">
+        <div style="font-size:15px; line-height:1.7;">정말 로비로 나갈까요?</div>
+        <div style="font-size:13px; color:var(--ink-soft); margin-top:6px;">지금 전투는 무효가 되고,<br>다시 하면 처음부터예요</div>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+        <button class="btn-danger" onclick="doExit()">나가기</button>
+        <button class="btn-primary" onclick="renderBattle()">계속하기</button>
+      </div>
+    </div>`;
+}
+function doExit(){
+  G = null;
+  busy = false;
+  sel = { hand:null, attacker:null, mode:null };
+  showTitle();
+}
+
+// ---------- 시작 ----------
+const hasSave = loadGame();
+if(hasSave){
+  showTitle();   // 이어하기: 바로 로비로
+} else {
+  renderTutorial();  // 새 게임: 튜토리얼부터
+}
+</script>
+</body>
+</html>
