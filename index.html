@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🧪 원소 카드 배틀 v0.21</title>
+<title>🧪 원소 카드 배틀 v0.22</title>
 <style>
   :root{
     --bg:#151a24; --panel:#1e2532; --ink:#e4e8f0; --ink-soft:#98a2b8; --line:#2e3646;
@@ -106,6 +106,8 @@
   .card .battery-badge{ position:absolute; top:-8px; left:-8px; background:#fbbf24; color:#3a2c00; font-size:11px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .card .laststand-badge{ position:absolute; top:-8px; left:-8px; font-size:15px; z-index:2; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
   .card .rad-badge{ position:absolute; top:-8px; right:-8px; background:#a3e635; color:#1a2e05; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .card .reflect-badge{ position:absolute; top:-8px; left:-8px; background:#e2e8f0; color:#1e293b; font-size:11px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .card .lead-badge{ position:absolute; top:14px; right:-8px; background:#64748b; color:#fff; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .card .tag{ font-size:8px; font-weight:800; color:#dbe0ea; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.55); padding:2px 7px; border-radius:8px; white-space:nowrap; }
 
   /* 하단 고정 능력 툴팁 (카드 위치와 무관, 절대 안 잘림) */
@@ -292,7 +294,7 @@
 
 <script>
 // ============================================================
-// 원소 카드 배틀 v0.21 — 밝은 테마 디자인 개편
+// 원소 카드 배틀 v0.22 — 밝은 테마 디자인 개편
 // 로직은 v0.4 그대로 / 겉모습·이펙트·턴표시·화면크기 개선
 // ============================================================
 
@@ -370,8 +372,21 @@ const ELEMENTS = {
   U:  { symbol:"U", name:"우라늄", number:92, group:"악티늄족", cost:4, atk:1, hp:4,
         passive:{ kind:"radiation", value:2, turns:2, short:"방사능 오염", label:"부딪힌 상대(때리거나 맞은 카드)가 방사능에 오염돼 매 턴 2씩 2턴 아파요. 그 전에 죽으면 남은 피해가 본체로!" },
         flavor:"방사능을 내뿜는 원소. 스치기만 해도 서서히 무너진다." },
+  Ag: { symbol:"Ag", name:"은", number:47, group:"전이금속", cost:4, atk:1, hp:4,
+        passive:null,
+        active:{ kind:"reflect", value:0, energy:4, short:"반사", label:"받은 피해를 거울처럼 모아 둬요. 에너지 4로 모은 만큼 한꺼번에 돌려줘요 (상대 카드가 없으면 본체로). 쓰고 나면 0부터 다시 모아요" },
+        flavor:"빛을 가장 잘 반사하는 금속. 거울의 원소답게 받은 만큼 돌려준다." },
+  Pb: { symbol:"Pb", name:"납", number:82, group:"탄소족", cost:3, atk:1, hp:3,
+        passive:null,
+        active:{ kind:"leadPoison", value:1, energy:4, short:"축적독", label:"에너지 4로 상대 카드 하나에 독을 걸어요. 독은 2턴마다 1씩 더 쌓이고, 쌓인 만큼 매 턴 피해를 줘요. 다른 카드에 독을 걸면 처음부터 다시 쌓여요!" },
+        flavor:"몸에 조금씩 쌓이는 무서운 금속. 한 놈만 끈질기게 괴롭힌다." },
+  Es: { symbol:"Es", name:"아인슈타이늄", number:99, group:"악티늄족", cost:7, atk:4, hp:5,
+        passive:{ kind:"hbomb", value:1, short:"수소폭탄", label:"내 수소가 상대를 공격한 턴에는, 아인슈타이늄을 에너지 없이 공짜로 소환할 수 있어요!" },
+        flavor:"수소폭탄 실험의 잔해에서 처음 발견된 원소. 수소가 터진 턴엔 공짜로 불러낸다." },
 };
-const STARTER = ["H","O","N","C","Fe","Au","Na","Cl","He","Li","Mg","Ca","K","P","Al","Hg","U"];
+// 뽑기·교환에서 안 나오는 특별 원소 (우라늄=보스 보상, 아인슈타이늄=코드 입력)
+const SPECIAL_KEYS = ["U","Es"];
+const STARTER = ["H","O","N","C","Fe","Au","Na","Cl","He","Li","Mg","Ca","K","P","Al","Hg","U","Ag","Pb","Es"];
 
 // ===== 도감용 전체 118원소 데이터: [번호,기호,이름,row,col,설명] =====
 const DEX = [
@@ -421,7 +436,7 @@ const DEX = [
   [44,"Ru","루테늄",5,8,"전자제품에 쓰이는 금속이에요"],
   [45,"Rh","로듐",5,9,"아주 비싸고 반짝이는 금속이에요"],
   [46,"Pd","팔라듐",5,10,"자동차 배기가스를 줄여줘요"],
-  [47,"Ag","은",5,11,"반짝이고 거울에 쓰이는 금속이에요"],
+  [47,"Ag","은",5,11,"빛을 잘 반사해 거울에 쓰이는 금속이라, 받은 피해를 모아 되돌려줘요"],
   [48,"Cd","카드뮴",5,12,"충전지에 쓰이는 금속이에요"],
   [49,"In","인듐",5,13,"터치스크린에 쓰이는 원소예요"],
   [50,"Sn","주석",5,14,"통조림 캔을 코팅하는 금속이에요"],
@@ -456,7 +471,7 @@ const DEX = [
   [79,"Au","금",6,11,"녹슬지도 변하지도 않아서, 독과 부식 공격이 안 통해요"],
   [80,"Hg","수은",6,12,"흐르는 액체 금속이라, 방어를 뚫고 본체를 직접 노려요"],
   [81,"Tl","탈륨",6,13,"예전에 쓰였던 위험한 원소예요"],
-  [82,"Pb","납",6,14,"무겁고 방사선을 막는 금속이에요"],
+  [82,"Pb","납",6,14,"몸에 조금씩 쌓이는 독성 금속이라, 한 상대를 갈수록 더 아프게 해요"],
   [83,"Bi","비스무트",6,15,"무지개색을 내는 금속이에요"],
   [84,"Po","폴로늄",6,16,"방사선을 내는 위험한 원소예요"],
   [85,"At","아스타틴",6,17,"아주 드문 방사성 원소예요"],
@@ -473,7 +488,7 @@ const DEX = [
   [96,"Cm","퀴륨",10,11,"우주탐사선 전력에 쓰여요"],
   [97,"Bk","버클륨",10,12,"실험실에서 만든 원소예요"],
   [98,"Cf","캘리포늄",10,13,"금속 탐지에 쓰이는 원소예요"],
-  [99,"Es","아인슈타이늄",10,14,"실험실에서 만든 드문 원소예요"],
+  [99,"Es","아인슈타이늄",10,14,"수소폭탄 실험에서 처음 발견된 원소라, 수소가 공격한 턴엔 공짜로 불러낼 수 있어요"],
   [100,"Fm","페르뮴",10,15,"실험실에서만 만들어지는 원소예요"],
   [101,"Md","멘델레븀",10,16,"주기율표를 만든 학자 이름이에요"],
   [102,"No","노벨륨",10,17,"노벨상에서 이름을 딴 원소예요"],
@@ -518,7 +533,7 @@ let tutoDone = false;       // 튜토리얼 완료 여부 (저장)
 // ============================================================
 // 원소 6종 + 에이스를 숫자로 바꿔 뒤섞은 뒤 문자로 → 알아볼 수 없는 코드
 // 원소 기호를 고정 순서 배열의 인덱스로 (이 배열 순서만 유지하면 코드 안정)
-const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U"];
+const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U","Ag","Pb","Es"];
 // 코드에 쓸 문자 (헷갈리는 0 O 1 I L 뺌)
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 30자
 const CODE_SCRAMBLE = 7; // 뒤섞기용 값
@@ -738,7 +753,9 @@ function effAtk(card, field){
   let a=card.atk; field.forEach(c=>{ if(c.iid!==card.iid && c.passive?.kind==="allyAtkUp") a+=c.passive.value; }); return a;
 }
 function shieldFor(card, field){ let s=0; field.forEach(c=>{ if(c.iid!==card.iid && c.passive?.kind==="shield") s+=c.passive.value; }); return s; }
-function costOf(card, field){ let reduce=0; field.forEach(c=>{ if(c.passive?.kind==="costDown") reduce+=c.passive.value; }); return Math.max(1, card.cost - reduce); }
+function costOf(card, field){
+  if(card.passive?.kind==="hbomb" && G && ((field===G.me.field && G.me.hbombReady) || (field===G.en.field && G.en.hbombReady))) return 0;
+  let reduce=0; field.forEach(c=>{ if(c.passive?.kind==="costDown") reduce+=c.passive.value; }); return Math.max(1, card.cost - reduce); }
 function tauntTargets(field){ const t=field.filter(c=>c.passive?.kind==="taunt"); return t.length? t : field; }
 
 // ============================================================
@@ -829,7 +846,7 @@ function showTitle(){
           <button class="btn-ghost" onclick="showSettings()">⚙️ 설정</button>
         </div>
       </div>
-      <div class="ver">v0.21</div>
+      <div class="ver">v0.22</div>
       <div class="save-status">${saveAvailable
         ? '💾 진행 상황이 자동 저장돼요'
         : '⚠️ 이 환경은 저장이 안 돼요 · 파일로 받으면 저장됩니다'}</div>
@@ -1000,7 +1017,7 @@ function doGacha(){
   mole -= GACHA_COST;
   gachaCount++;
   // 뽑기 풀 = 우라늄(보스 전용) 제외 모든 원소
-  const allKeys = Object.keys(ELEMENTS).filter(k=>k!=="U");
+  const allKeys = Object.keys(ELEMENTS).filter(k=>!SPECIAL_KEYS.includes(k));
   const notOwned = allKeys.filter(k=>!owned.includes(k));
 
   let key;
@@ -1152,7 +1169,7 @@ function showGachaResult(){
 // 에너지 결정 교환 화면 (안 가진 원소 중 선택)
 function showExchange(){
   if(crystal < CRYSTAL_FOR_ELEMENT){ toast("에너지 결정이 부족해요"); return; }
-  const notOwned = Object.keys(ELEMENTS).filter(k=>!owned.includes(k) && k!=="U");
+  const notOwned = Object.keys(ELEMENTS).filter(k=>!owned.includes(k) && !SPECIAL_KEYS.includes(k));
   if(notOwned.length===0){ toast("이미 모든 원소를 가지고 있어요!"); return; }
   const cards = notOwned.map(k=>{
     const e=ELEMENTS[k];
@@ -1203,6 +1220,15 @@ function showSettings(){
         </div>
         <div class="set-divider"></div>
         <div class="set-row">
+          <span>🎁 코드 입력</span>
+          <span style="display:flex; gap:6px;">
+            <input id="redeem-input" type="text" maxlength="20" placeholder="코드" autocomplete="off"
+              style="width:120px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:transparent; color:inherit; font-size:13px;">
+            <button class="toggle on" onclick="redeemCode()">입력</button>
+          </span>
+        </div>
+        <div class="set-divider"></div>
+        <div class="set-row">
           <span>🗑️ 게임 초기화</span>
           <button class="btn-danger" onclick="confirmReset()">처음부터</button>
         </div>
@@ -1212,6 +1238,25 @@ function showSettings(){
       </div>
       <button class="btn-primary" style="margin-top:20px;" onclick="showTitle()">← 돌아가기</button>
     </div>`;
+}
+// ===== 코드 입력 (선물 코드) =====
+// 새 코드는 여기에 추가: "코드": { key:원소, msg:안내 }
+const REDEEM_CODES = {
+  "홍보감사아인": { key:"Es", msg:"홍보해 줘서 고마워요! 아인슈타이늄을 받았어요 💣" },
+};
+function redeemCode(){
+  const el = document.getElementById("redeem-input");
+  if(!el) return;
+  const code = el.value.replace(/\s/g,"");
+  if(!code){ toast("코드를 입력해 주세요"); return; }
+  const r = REDEEM_CODES[code];
+  if(!r){ toast("없는 코드예요"); el.value=""; return; }
+  if(owned.includes(r.key)){ toast("이미 받은 원소예요"); el.value=""; return; }
+  owned.push(r.key);
+  saveGame();
+  SFX.win();
+  toast(r.msg);
+  el.value="";
 }
 function toggleSound(){
   soundOn = !soundOn;
@@ -1608,7 +1653,7 @@ function showBossFakeClear(){
       <h1>🏆 보스 격파!</h1>
       <p class="subtitle">해냈어요! 보스를 물리쳤어요! 🎉</p>
       <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>
-      <div class="ver">v0.21</div></div>`;
+      <div class="ver">v0.22</div></div>`;
   }, 900);
 }
 
@@ -1665,6 +1710,16 @@ function cardHTML(c, ctx, field){
   if(ctx!=="hand" && c.radTurns > 0){
     rad = `<div class="rad-badge">☢️${c.radTurns}</div>`;
   }
+  // 은 반사: 모은 피해 표시
+  let reflect = "";
+  if(ctx!=="hand" && c.active?.kind==="reflect"){
+    reflect = `<div class="reflect-badge">🪞${c.reflectStore||0}</div>`;
+  }
+  // 납 축적독: 독이 쌓인 카드 표시
+  let lead = "";
+  if(ctx!=="hand" && (c.leadStacks||0) > 0){
+    lead = `<div class="lead-badge">☠️${c.leadStacks}</div>`;
+  }
   let cls="card", onclick="", cost="";
 
   if(ctx==="hand"){
@@ -1685,7 +1740,15 @@ function cardHTML(c, ctx, field){
       if(ready) onclick=`onclick="pickAttacker(${c.iid})"`;
     }
   } else { // enemy-field
-    if(sel.mode==="blast"){
+    if(sel.mode==="reflect"){
+      if(tauntTargets(G.en.field).map(x=>x.iid).includes(c.iid)){
+        cls+=" targetable"; onclick=`onclick="reflectTarget(${c.iid})"`;
+      }
+    } else if(sel.mode==="lead"){
+      if(c.passive?.kind!=="immune"){
+        cls+=" targetable"; onclick=`onclick="leadTarget(${c.iid})"`;
+      }
+    } else if(sel.mode==="blast"){
       // 발화 모드: 상대 카드가 발화 대상 (도발 지킴)
       if(tauntTargets(G.en.field).map(x=>x.iid).includes(c.iid)){
         cls+=" targetable"; onclick=`onclick="blastTarget(${c.iid})"`;
@@ -1719,7 +1782,7 @@ function cardHTML(c, ctx, field){
   }
 
   return `<div class="${cls}" ${onclick} ${hover}>
-    ${cost}${taunt}${battery}${lastStand}${rad}
+    ${cost}${taunt}${battery}${lastStand}${rad}${reflect}${lead}
     <div class="band" style="background:${g.band}"></div>
     <div class="inner">
       <div class="topfill" style="background:linear-gradient(180deg, ${g.band}, transparent)"></div>
@@ -1750,13 +1813,18 @@ function hideTip(){
 
 function renderBattle(){
   if(!G) return;
+  syncReflect();
   hideTip();
   const myTurn = G.turn==="me" && !busy;
   const enField = G.en.field.length? G.en.field.map(c=>cardHTML(c,"enemy-field",G.en.field)).join("") : `<div class="empty">비어 있음</div>`;
   const myField = G.me.field.length? G.me.field.map(c=>cardHTML(c,"my-field",G.me.field)).join("") : `<div class="empty">비어 있음</div>`;
   const hand = G.me.hand.map(c=>cardHTML(c,"hand",G.me.field)).join("");
   let faceBtn = "";
-  if(myTurn && sel.mode==="blast"){
+  if(myTurn && sel.mode==="reflect"){
+    if(G.en.field.length===0){
+      faceBtn = `<button class="btn-danger" onclick="reflectFace()">🪞 본체에 반사!</button>`;
+    }
+  } else if(myTurn && sel.mode==="blast"){
     // 발화 모드: 상대 카드 없으면 본체 발화 버튼
     if(G.en.field.length===0){
       faceBtn = `<button class="btn-danger" onclick="blastFace()">🔥 본체에 발화!</button>`;
@@ -1781,6 +1849,24 @@ function renderBattle(){
         } else {
           activeBtn = `<button class="btn-disabled" disabled>🔋 충전 중... (${sc.chargeTick||0}/2)</button>`;
         }
+      }
+    } else if(sc && sc.active && sc.active.kind==="reflect" && sc.canAttack){
+      // 은: 여러 번 사용 가능 (한 턴에 한 번), 모은 피해가 있어야 함
+      const st = sc.reflectStore||0;
+      if(sc.reflectTurn===G.turnCount){
+        activeBtn = `<button class="btn-disabled" disabled>🪞 이번 턴엔 반사함</button>`;
+      } else if(st<=0){
+        activeBtn = `<button class="btn-disabled" disabled>🪞 모은 피해 없음</button>`;
+      } else {
+        activeBtn = `<button class="btn-active" onclick="useActive(${sc.iid})">🪞 반사 ${st} (⚡${sc.active.energy})</button>`;
+      }
+    } else if(sc && sc.active && sc.active.kind==="leadPoison" && sc.canAttack){
+      // 납: 대상 바꾸기 가능 (한 턴에 한 번)
+      if(sc.leadTurn===G.turnCount){
+        activeBtn = `<button class="btn-disabled" disabled>☠️ 이번 턴엔 독을 걸었어요</button>`;
+      } else {
+        const has = G.en.field.some(t=>t.iid===sc.leadTarget);
+        activeBtn = `<button class="btn-active" onclick="useActive(${sc.iid})">☠️ ${has?"대상 바꾸기":"축적독"} (⚡${sc.active.energy})</button>`;
       }
     } else if(sc && sc.active && !sc.usedActive && sc.canAttack){
       const iconMap = { poison:"☠️", heal:"💚", blast:"🔥", aoe:"💥", stun:"✨" };
@@ -1860,7 +1946,9 @@ function doSummon(){
   G.me.hand = G.me.hand.filter(c=>c.iid!==card.iid);
   const newCard = {...card, canAttack:false, hasAttacked:false};
   G.me.field.push(newCard);
-  log(`🔷 ${card.name}(${card.symbol}) 소환! ${realCost!==card.cost?`(탄소 촉매로 ${realCost} 소모)`:""}`);
+  const freeBomb = card.passive?.kind==="hbomb" && realCost===0;
+  if(freeBomb) G.me.hbombReady = false;
+  log(`🔷 ${card.name}(${card.symbol}) 소환! ${freeBomb?"(수소폭탄으로 무료 소환!)":(realCost!==card.cost?`(탄소 촉매로 ${realCost} 소모)`:"")}`);
   fx(`${elName(card.name)} 소환!`, gColor(card).band); SFX.summon();
   onSummon(newCard, G.me);   // 등장 효과 (칼슘 등)
   sel.hand=null; renderBattle();
@@ -1894,6 +1982,7 @@ function attackTarget(targetIid){
   fx(`⚔️ ${elName(aCard.name)} 공격!`, "#e0662f");
   dealToUnit(aCard, tCard, G.me.field, G.en, "상대", "en");
   aCard.hasAttacked=true; sel.attacker=null;
+  if(aCard.key==="H") hbombTrigger(G.me, "당신");
   if(G && G.tutorial) tutoAdvance("attack");
   if(checkEnd())return; renderBattle();
 }
@@ -1907,6 +1996,7 @@ function attackFace(){
   log(`💥 ${aCard.name} → 상대 본체에 ${dmg} 데미지! (남은 ${Math.max(0,G.en.hp)})`);
   fx(`💥 본체에 ${dmg}!`, "#ef4444"); SFX.pierce();
   aCard.hasAttacked=true; sel.attacker=null;
+  if(aCard.key==="H") hbombTrigger(G.me, "당신");
   renderBattle(); flashHp("en");
   if(checkEnd())return;
 }
@@ -1969,6 +2059,25 @@ function useActive(iid){
   const card = G.me.field.find(c=>c.iid===iid);
   if(!card || !card.active) return;
   const act = card.active;
+  if(act.kind==="reflect"){
+    syncReflect();
+    if(card.reflectTurn===G.turnCount){ toast("반사는 한 턴에 한 번만 쓸 수 있어요"); return; }
+    if((card.reflectStore||0)<=0){ toast("아직 모은 피해가 없어요"); return; }
+    if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
+    sel = { hand:null, attacker:null, mode:"reflect", srcIid:iid };
+    toast(G.en.field.length===0 ? "본체에 반사할 수 있어요!" : "반사할 상대를 골라요");
+    renderBattle();
+    return;
+  }
+  if(act.kind==="leadPoison"){
+    if(card.leadTurn===G.turnCount){ toast("축적독은 한 턴에 한 번만 걸 수 있어요"); return; }
+    if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
+    if(!G.en.field.some(t=>t.passive?.kind!=="immune")){ toast("독을 걸 상대 카드가 없어요"); return; }
+    sel = { hand:null, attacker:null, mode:"lead", srcIid:iid };
+    toast("독을 쌓을 상대를 골라요");
+    renderBattle();
+    return;
+  }
   if(card.usedActive){ toast("이미 이 카드의 스킬을 썼어요"); return; }
   if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
   if(act.kind==="aoe"){
@@ -2041,6 +2150,121 @@ function healTarget(iid){
   fx(`💚 ${elName(tgt.name)} 회복!`, "#4ade80"); SFX.summon();
   sel={hand:null,attacker:null,mode:null}; renderBattle();
 }
+// ===== 은 반사 =====
+// 체력이 깎인 만큼 모음 (공격·독·방사능·폭발 전부). 회복은 모은 값을 줄이지 않음
+function syncReflect(){
+  if(!G) return;
+  [G.me, G.en].forEach(P=>P.field.forEach(c=>{
+    if(c.active?.kind!=="reflect") return;
+    if(c.agHp===undefined){ c.agHp = c.curHp; c.reflectStore = c.reflectStore||0; return; }
+    if(c.curHp < c.agHp) c.reflectStore = (c.reflectStore||0) + (c.agHp - c.curHp);
+    c.agHp = c.curHp;
+  }));
+}
+// 반사 피해 주기 (공용: 나/봇). 카드면 관통 있음, 대상 없으면 본체
+function doReflect(src, tgt, defP, defName, defSide){
+  const dmg = src.reflectStore||0;
+  src.reflectStore = 0; src.reflectTurn = G.turnCount;
+  SFX.explode();
+  if(tgt){
+    fx(`🪞 ${elName(src.name)} 반사 ${dmg}!`, "#e2e8f0");
+    log(`🪞 ${defName==="상대"?"":"상대 "}${src.name} 반사! ${tgt.name}에게 ${dmg} 피해`);
+    const before = tgt.curHp; tgt.curHp -= dmg;
+    if(tgt.curHp<=0){
+      if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){
+        tgt.lastStandUsed=true; tgt.curHp=1;
+        log(`✨ 불활성! ${tgt.name}이(가) 버텼어요`);
+      } else {
+        const overflow = dmg - before;
+        log(`☠️ ${defName}의 ${tgt.name} 파괴됨!`);
+        onCardDeath(tgt, defP, src);
+        defP.field = defP.field.filter(c=>c.iid!==tgt.iid);
+        if(overflow>0){ defP.hp -= overflow; log(`➡️ 관통! 넘친 ${overflow} 데미지가 본체로`); setTimeout(()=>flashHp(defSide),60); }
+      }
+    }
+  } else {
+    defP.hp -= dmg;
+    fx(`🪞 본체에 반사 ${dmg}!`, "#e2e8f0");
+    log(`🪞 ${defName==="상대"?"":"상대 "}${src.name} 반사! ${defName} 본체에 ${dmg} 피해`);
+    setTimeout(()=>flashHp(defSide), 60);
+  }
+}
+function reflectTarget(iid){
+  if(G.turn!=="me"||busy||sel.mode!=="reflect") return;
+  const src = G.me.field.find(c=>c.iid===sel.srcIid);
+  const tgt = G.en.field.find(c=>c.iid===iid);
+  if(!src||!tgt) return;
+  if(!tauntTargets(G.en.field).map(x=>x.iid).includes(iid)){ toast("자석 방패! 철을 먼저 노려야 해요 🧲"); return; }
+  if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  G.me.energy -= src.active.energy;
+  doReflect(src, tgt, G.en, "상대", "en");
+  sel={hand:null,attacker:null,mode:null};
+  if(checkEnd())return; renderBattle();
+}
+function reflectFace(){
+  if(G.turn!=="me"||busy||sel.mode!=="reflect") return;
+  const src = G.me.field.find(c=>c.iid===sel.srcIid);
+  if(!src) return;
+  if(G.en.field.length>0){ toast("상대 카드가 있으면 카드에 반사해요"); return; }
+  if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  G.me.energy -= src.active.energy;
+  doReflect(src, null, G.en, "상대", "en");
+  sel={hand:null,attacker:null,mode:null};
+  if(checkEnd())return; renderBattle();
+}
+
+// ===== 납 축적독 =====
+// 독 걸기 (공용). 이전 대상의 독은 사라짐
+function markLead(src, tgt, defP){
+  defP.field.forEach(t=>{ if(t.leadBy===src.iid){ t.leadStacks=0; t.leadTick=0; t.leadBy=null; } });
+  tgt.leadBy = src.iid; tgt.leadStacks = 1; tgt.leadTick = 0;
+  src.leadTarget = tgt.iid; src.leadTurn = G.turnCount;
+  SFX.poison();
+}
+function leadTarget(iid){
+  if(G.turn!=="me"||busy||sel.mode!=="lead") return;
+  const src = G.me.field.find(c=>c.iid===sel.srcIid);
+  const tgt = G.en.field.find(c=>c.iid===iid);
+  if(!src||!tgt) return;
+  if(tgt.passive?.kind==="immune"){ toast("금에는 독이 안 통해요"); return; }
+  if(src.leadTarget===tgt.iid){ toast("이미 독을 쌓고 있는 상대예요"); return; }
+  if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  G.me.energy -= src.active.energy;
+  markLead(src, tgt, G.en);
+  fx(`☠️ ${elName(tgt.name)}에 축적독!`, "#94a3b8");
+  log(`☠️ ${src.name} 축적독! ${tgt.name}에게 독이 쌓이기 시작해요`);
+  sel={hand:null,attacker:null,mode:null}; renderBattle();
+}
+// 턴 시작에 독 피해: 쌓인 만큼 아프고, 2턴마다 1씩 더 쌓임 (최대치 없음)
+// atkField = 납이 있는 쪽 필드, defP = 독 걸린 쪽
+function applyLead(atkField, defP, defName){
+  let any=false;
+  defP.field.forEach(t=>{
+    if(!(t.leadStacks>0)) return;
+    if(!atkField.some(p=>p.iid===t.leadBy)){ t.leadStacks=0; t.leadTick=0; t.leadBy=null; return; } // 납이 죽으면 독 끝
+    t.curHp -= t.leadStacks; any=true;
+    log(`☠️ ${defName}의 ${t.name} 축적독 ${t.leadStacks} 피해`);
+    t.leadTick = (t.leadTick||0) + 1;
+    if(t.leadTick >= 2){ t.leadTick = 0; t.leadStacks += 1; }
+  });
+  if(!any) return false;
+  fx(`☠️ 축적독!`, "#94a3b8"); SFX.poison();
+  const dead = defP.field.filter(t=>t.curHp<=0);
+  dead.forEach(t=>{ log(`☠️ ${defName}의 ${t.name}이(가) 축적독으로 쓰러졌어요!`); onCardDeath(t, defP, null); });
+  defP.field = defP.field.filter(t=>t.curHp>0);
+  return true;
+}
+
+// ===== 아인슈타이늄 수소폭탄 =====
+// 수소가 상대를 공격하면: 이번 턴 동안 손패의 아인슈타이늄 한 장을 공짜로 소환 가능
+function hbombTrigger(owner, ownerName){
+  if(owner.hbombReady) return;
+  if(!owner.hand.some(c=>c.passive?.kind==="hbomb")) return;
+  owner.hbombReady = true;
+  log(`💣 수소폭탄! ${ownerName==="당신"?"이번 턴에 아인슈타이늄을 공짜로 소환할 수 있어요":"상대가 아인슈타이늄을 공짜로 부를 수 있게 됐어요"}`);
+  setTimeout(()=>{ fx(`💣 수소폭탄! 아인슈타이늄 무료!`, "#a3e635"); SFX.explode(); }, 350);
+}
+
 // 인 발화: 상대 대상 클릭
 function blastTarget(iid){
   if(G.turn!=="me"||busy||sel.mode!=="blast") return;
@@ -2132,7 +2356,7 @@ function applyRadiation(P, sideName, sideKey){
 // ============================================================
 async function endTurn(){
   if(G.turn!=="me"||busy) return;
-  sel={hand:null,attacker:null,mode:null}; log("— 당신의 턴 종료 —");
+  sel={hand:null,attacker:null,mode:null}; G.me.hbombReady=false; log("— 당신의 턴 종료 —");
   G.turn="en"; busy=true; renderBattle();
   fx("상대 턴", "#ef4444");
   try{
@@ -2161,6 +2385,13 @@ async function enemyTurn(){
   // 상대 턴 시작: 상대 카드가 중독됐으면(내 염소가 독 켬) 데미지
   if(poisonActive(G.me.field)){
     applyPoison(G.me.field, G.en, "상대", "en");
+    renderBattle();
+    if(checkEnd()) return;
+    await wait(600);
+    if(!G) return;
+  }
+  // 상대 카드 축적독 (내 납)
+  if(applyLead(G.me.field, G.en, "상대")){
     renderBattle();
     if(checkEnd()) return;
     await wait(600);
@@ -2295,6 +2526,46 @@ async function enemyTurn(){
     }
   }
 
+  // 봇 납 축적독: 독 걸린 대상이 없으면 내 카드 중 체력 높은 것에 (금 제외)
+  const pbField = G.en.field.filter(c=>c.active?.kind==="leadPoison" && c.canAttack && c.leadTurn!==G.turnCount);
+  for(const pb of pbField){
+    if(!G) return;
+    if(pb.active.energy>G.en.energy) continue;
+    if(G.me.field.some(t=>t.iid===pb.leadTarget)) continue; // 이미 독 쌓는 중
+    const pool = G.me.field.filter(t=>t.passive?.kind!=="immune");
+    if(!pool.length) continue;
+    const tgt = pool.reduce((a,b)=>b.curHp>a.curHp?b:a);
+    await wait(500);
+    if(!G) return;
+    G.en.energy -= pb.active.energy;
+    markLead(pb, tgt, G.me);
+    fx(`☠️ 상대 축적독! ${elName(tgt.name)}`, "#94a3b8");
+    log(`☠️ 상대 ${pb.name} 축적독! 당신의 ${tgt.name}에게 독이 쌓이기 시작해요`);
+    renderBattle();
+  }
+
+  // 봇 은 반사: 모은 피해가 2 이상이면 방출 (잡을 수 있는 카드 우선, 없으면 체력 높은 카드, 카드 없으면 본체)
+  syncReflect();
+  const agField = G.en.field.filter(c=>c.active?.kind==="reflect" && c.canAttack && c.reflectTurn!==G.turnCount);
+  for(const ag of agField){
+    if(!G) return;
+    const st = ag.reflectStore||0;
+    if(st<2 || ag.active.energy>G.en.energy) continue;
+    await wait(500);
+    if(!G) return;
+    G.en.energy -= ag.active.energy;
+    const pool = tauntTargets(G.me.field);
+    if(pool.length>0){
+      const killable = pool.filter(t=>t.curHp<=st);
+      const tgt = killable.length ? killable.reduce((a,b)=>b.curHp>a.curHp?b:a) : pool.reduce((a,b)=>b.curHp>a.curHp?b:a);
+      doReflect(ag, tgt, G.me, "당신", "me");
+    } else {
+      doReflect(ag, null, G.me, "당신", "me");
+    }
+    renderBattle();
+    if(checkEnd()) return;
+  }
+
   // 봇 칼륨 회복: 다친 아군이 있으면 회복
   const kField = G.en.field.filter(c=>c.active?.kind==="heal" && c.canAttack);
   for(const k of kField){
@@ -2356,8 +2627,26 @@ async function enemyTurn(){
       }
     }
     live.hasAttacked=true;
+    if(live.key==="H" && G) hbombTrigger(G.en, "상대");
+    renderBattle();
     if(checkEnd()) return;
   }
+  // 봇 수소폭탄: 수소가 공격했으면 아인슈타이늄 무료 소환
+  if(G && G.en.hbombReady && G.en.field.length<FIELD_MAX){
+    const es = G.en.hand.find(c=>c.passive?.kind==="hbomb");
+    if(es){
+      await wait(500);
+      if(!G) return;
+      G.en.hand = G.en.hand.filter(c=>c.iid!==es.iid);
+      const nc = {...es, canAttack:false, hasAttacked:false};
+      G.en.field.push(nc);
+      log(`🔶 상대가 ${es.name}(${es.symbol}) 소환! (수소폭탄으로 무료)`);
+      fx(`💣 상대 ${elName(es.name)} 무료 소환!`, "#a3e635");
+      onSummon(nc, G.en);
+      renderBattle();
+    }
+  }
+  if(G) G.en.hbombReady = false;
   await wait(600);
   if(!G) return;
   log("— 상대 턴 종료 —");
@@ -2390,6 +2679,11 @@ async function enemyTurn(){
       checkEnd();
     }, 700);
   }
+  // 내 카드 축적독 (상대 납)
+  setTimeout(()=>{
+    if(!G || G.turn!=="me") return;
+    if(applyLead(G.en.field, G.me, "당신")){ renderBattle(); checkEnd(); }
+  }, 720);
   // 내 카드 방사능 오염 피해
   setTimeout(()=>{
     if(!G || G.turn!=="me") return;
@@ -2529,7 +2823,7 @@ function showResult(win){
         ${moleMsg}${unlockMsg}
         <p class="subtitle">보상을 하나 골라요! (하나만 받을 수 있어요)</p>
         <div class="reward-choices">${cards}</div>
-        <div class="ver">v0.21</div></div>`;
+        <div class="ver">v0.22</div></div>`;
     } else if(win && rewardPool.length === 1){
       // 단일 보상 + 다시/다음
       owned.push(rewardPool[0]); saveGame();
@@ -2540,7 +2834,7 @@ function showResult(win){
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 스테이지 클리어!</h1>
         ${rewardHTML}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v0.21</div></div>`;
+        <div class="ver">v0.22</div></div>`;
     } else if(win && isFinalStage && firstClear){
       // 보스 첫 클리어 = 축하 + 우라늄
       const uReward = bossReward ? `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
@@ -2552,13 +2846,13 @@ function showResult(win){
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로 →</button></div>
-        <div class="ver">v0.21</div></div>`;
+        <div class="ver">v0.22</div></div>`;
     } else if(win){
       // 보상 없음 (반복 클리어 등) + 다시/다음
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 ${isFinalStage?"승리!":"스테이지 클리어!"}</h1>
         ${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v0.21</div></div>`;
+        <div class="ver">v0.22</div></div>`;
     } else {
       // 패배
       document.getElementById("app").innerHTML = `<div id="result"><h1>💀 패배...</h1>
@@ -2566,7 +2860,7 @@ function showResult(win){
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 도전 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
-        <div class="ver">v0.21</div></div>`;
+        <div class="ver">v0.22</div></div>`;
     }
   }, 900);
 }
