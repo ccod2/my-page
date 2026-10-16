@@ -176,6 +176,24 @@
   #boss-glitch .glitch-text{ font-size:28px; font-weight:900; color:#a3e635; text-shadow:3px 0 #ff003c, -3px 0 #00fff9; animation:glitch-shake .15s infinite; text-align:center; }
   @keyframes glitch-flicker{ 0%{opacity:1;} 50%{opacity:.6;} 100%{opacity:1;} }
   @keyframes glitch-shake{ 0%{transform:translate(0);} 25%{transform:translate(-4px,2px);} 50%{transform:translate(4px,-2px);} 75%{transform:translate(-2px,-3px);} 100%{transform:translate(2px,3px);} }
+  #boss-sparks{ position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at center, rgba(50,25,0,.82), rgba(0,0,0,.94)); }
+  #boss-sparks .spark-burst{ position:absolute; left:50%; top:50%; width:0; height:0; }
+  #boss-sparks .spark{ position:absolute; left:0; top:0; width:5px; height:5px; border-radius:50%; background:#ffe08a; box-shadow:0 0 7px 2px #ff8a00; opacity:0; animation:spark-fly var(--dur) ease-out var(--delay) forwards; }
+  @keyframes spark-fly{ 0%{opacity:1; transform:rotate(var(--ang)) translateX(0) scale(1.3);} 100%{opacity:0; transform:rotate(var(--ang)) translateX(var(--dist)) scale(.2);} }
+  #boss-sparks .spark-text{ position:relative; z-index:2; font-size:26px; font-weight:900; color:#ffe08a; text-shadow:0 0 14px #ff6a00; animation:glitch-shake .15s infinite; text-align:center; }
+  .zone.en.phase2-enter{ animation:phase2-slide .6s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes phase2-slide{ 0%{transform:translateX(55%); opacity:0;} 60%{opacity:1;} 100%{transform:translateX(0); opacity:1;} }
+  .metal-hit{ position:fixed; z-index:320; width:0; height:0; pointer-events:none; }
+  .metal-hit .mspark{ position:absolute; left:0; top:0; width:2px; height:11px; border-radius:1px; background:linear-gradient(to top,#ff8a2c,#ffffff); box-shadow:0 0 4px #ffd8a0; opacity:0; transform-origin:center bottom; animation:mspark-fly var(--dur) cubic-bezier(.15,.7,.3,1) var(--delay) forwards; }
+  @keyframes mspark-fly{ 0%{opacity:1; transform:rotate(var(--ang)) translateY(0) scaleY(1.1);} 70%{opacity:1;} 100%{opacity:0; transform:rotate(var(--ang)) translateY(calc(var(--dist) * -1)) scaleY(.3);} }
+  .hit-shake{ animation:hit-shake .16s ease-out; }
+  @keyframes hit-shake{ 0%{transform:translate(0,0);} 25%{transform:translate(-2px,1px);} 50%{transform:translate(2px,-1px);} 75%{transform:translate(-1px,1px);} 100%{transform:translate(0,0);} }
+  .screen-shake{ animation:screen-shake .15s ease-out; }
+  @keyframes screen-shake{ 0%{transform:translate(0,0);} 30%{transform:translate(-2px,0);} 60%{transform:translate(2px,-1px);} 100%{transform:translate(0,0);} }
+  .btn-break{ animation:btn-break .34s ease-in forwards; }
+  @keyframes btn-break{ 0%{transform:scale(1) rotate(0); opacity:1;} 35%{transform:scale(1.08) rotate(-3deg);} 100%{transform:scale(.55) rotate(8deg); opacity:0;} }
+  .btn-appear{ animation:btn-appear .3s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes btn-appear{ 0%{transform:scale(.4); opacity:0;} 100%{transform:scale(1); opacity:1;} }
   #tuto-guide{ transition:opacity .35s ease, transform .35s ease; }
   #tuto-guide.tuto-hide{ opacity:0; transform:translateX(-50%) translateY(-10px); }
   .card.tuto-pick{ animation:tuto-pulse 1.1s ease-in-out infinite; }
@@ -417,6 +435,10 @@ const ELEMENTS = {
         passive:{ kind:"meteor", value:1, short:"운석 낙하", label:"등장하면 상대 전체에 운석 피해를 1 줘요." },
         active:null,
         flavor:"운석에 많이 들어 있는 금속. 등장하면 상대 필드에 운석을 떨어뜨린다." },
+  Ti: { symbol:"Ti", name:"타이타늄", number:22, group:"전이금속", cost:4, atk:3, hp:5,
+        passive:{ kind:"regen", value:2, short:"산화막 재생", label:"턴이 끝날 때마다 스스로 체력을 2 회복해요." },
+        active:null,
+        flavor:"아무리 깎아내도 다시 단단해지는 금속. 턴이 끝날 때마다 스스로 회복한다." },
 };
 // 붕소: ownerField(죽은 카드 주인 필드)에 붕소가 살아 있으면 관통 피해 1 감소 (0 밑으로 안 내려감)
 function boronReduce(overflow, ownerField){
@@ -425,7 +447,7 @@ function boronReduce(overflow, ownerField){
   return Math.max(0, overflow - boronCount); // 붕소 한 장당 관통 1 감소
 }
 // 뽑기·교환에서 안 나오는 특별 원소 (우라늄=보스 보상, 아인슈타이늄=코드 입력)
-const SPECIAL_KEYS = ["U","Es"];
+const SPECIAL_KEYS = ["U","Es","Ti"];
 const STARTER = ["H","O","N","C","Fe","Au","Na","Cl","He","Li","Mg","Ca","K","P","Al","Hg","U","Ag","Pb","Es"];
 
 // ===== 도감용 전체 118원소 데이터: [번호,기호,이름,row,col,설명] =====
@@ -451,7 +473,7 @@ const DEX = [
   [19,"K","포타슘",4,1,"바나나에 많은 영양 원소라, 아군의 체력을 회복시켜줘요"],
   [20,"Ca","칼슘",4,2,"뼈와 이의 원소라, 든든한 아군을 더 튼튼하게 만들어줘요"],
   [21,"Sc","스칸듐",4,3,"가벼운 운동 장비에 쓰여요"],
-  [22,"Ti","타이타늄",4,4,"가볍고 아주 튼튼한 금속이에요"],
+  [22,"Ti","타이타늄",4,4,"아무리 깎아내도 다시 단단해지는 금속이라, 턴이 끝날 때마다 스스로 회복해요"],
   [23,"V","바나듐",4,5,"강철을 더 단단하게 만들어요"],
   [24,"Cr","크로뮴",4,6,"반짝이는 도금에 쓰이는 금속이에요"],
   [25,"Mn","망가니즈",4,7,"강철을 만들 때 넣는 금속이에요"],
@@ -573,7 +595,7 @@ let tutoDone = false;       // 튜토리얼 완료 여부 (저장)
 // ============================================================
 // 원소 6종 + 에이스를 숫자로 바꿔 뒤섞은 뒤 문자로 → 알아볼 수 없는 코드
 // 원소 기호를 고정 순서 배열의 인덱스로 (이 배열 순서만 유지하면 코드 안정)
-const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U","Ag","Pb","Es","Ar","B","I","F","Nd","Ir"];
+const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U","Ag","Pb","Es","Ar","B","I","F","Nd","Ir","Ti"];
 // 코드에 쓸 문자 (헷갈리는 0 O 1 I L 뺌)
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 30자
 const CODE_SCRAMBLE = 7; // 뒤섞기용 값
@@ -627,8 +649,8 @@ function decodeDeck(code){
 }
 const GACHA_COST = 500;
 const CRYSTAL_FOR_ELEMENT = 10;
-const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500 };  // 첫 클리어 코인 (우상향)
-const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500 }; // 반복 (첫의 1/3, 50단위)
+const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500, 11:1100, 12:1200, 13:1300, 14:1400, 15:1500, 16:1500, 17:1600, 18:1600, 19:1700, 20:2000 };  // 첫 클리어 코인 (우상향)
+const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500, 11:350, 12:400, 13:450, 14:450, 15:500, 16:500, 17:550, 18:550, 19:550, 20:650 }; // 반복 (첫의 1/3, 50단위)
 let reward = null, G = null, logs = [], busy = false;
 let sel = { hand:null, attacker:null, mode:null }; // mode: 'attack' | 'active'
 let stage = 1;        // '가': 지금 하는 판 (전투 시작이 따라감, 맵에서 고르면 바뀜)
@@ -649,10 +671,21 @@ const STAGES = {
   8:  { hp:30, deck:["H","Li","N","O","Mg","K"],           miss:0.20, reward:null,  label:"스테이지 8" },
   9:  { hp:30, deck:["Fe","Au","O","P","Mg","N"],          miss:0.20, reward:null,  label:"스테이지 9" },
   10: { hp:35, deck:["Au","O","Hg","P","Na","U"],          miss:0.15, reward:null,  label:"스테이지 10 · 보스", boss:true },
+  11: { hp:30, deck:["He","N","F","Cl","K","Au"],         miss:0.20, reward:null,  label:"스테이지 11" },
+  12: { hp:30, deck:["Fe","Na","P","Hg","O","Nd"],        miss:0.20, reward:null,  label:"스테이지 12" },
+  13: { hp:30, deck:["C","Ir","Na","Ca","Cl","Fe"],       miss:0.17, reward:null,  label:"스테이지 13" },
+  14: { hp:30, deck:["Li","N","Ar","K","Ca","Ag"],        miss:0.17, reward:null,  label:"스테이지 14" },
+  15: { hp:30, deck:["F","Cl","Pb","Fe","Al","O"],        miss:0.15, reward:null,  label:"스테이지 15" },
+  16: { hp:30, deck:["B","C","N","O","Ar","Ca"],          miss:0.12, reward:null,  label:"스테이지 16" },
+  17: { hp:30, deck:["N","I","F","Ar","Ca","K"],          miss:0.12, reward:null,  label:"스테이지 17" },
+  18: { hp:30, deck:["Li","O","Mg","P","Nd","Hg"],        miss:0.12, reward:null,  label:"스테이지 18" },
+  19: { hp:35, deck:["H","C","N","O","Fe","Au"],          miss:0.06, reward:null,  label:"스테이지 19" },
+  20: { hp:35, deck:["Au","Hg","Al","Pb","Ag","Mg"],      miss:0.02, reward:null,  label:"스테이지 20 · 보스", boss:true },
 };
-const MAX_STAGE = 10;
+const MAX_STAGE = 20;
 // 보스 2페이즈 설정
 const BOSS_PHASE2 = { hp:30, deck:["U","Hg","P","Mg","Cl","Au"], miss:0.13 };
+const BOSS_PHASE2_MAP = { 10: BOSS_PHASE2, 20: { hp:35, deck:["Ti","K","P","Ar","N","O"], miss:0.02 } };
 
 // ---------- 유틸 ----------
 function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
@@ -685,7 +718,7 @@ const wait = ms => new Promise(r=>setTimeout(r,ms));
 let soundOn = false;
 let useOldNames = false;  // false=소듐/포타슘(새), true=나트륨/칼륨(옛)
 // 옛 이름 매핑 (새 이름 → 옛 이름)
-const OLD_NAMES = { "소듐":"나트륨", "포타슘":"칼륨", "아이오딘":"요오드", "플루오린":"불소", "브로민":"브롬" };
+const OLD_NAMES = { "소듐":"나트륨", "포타슘":"칼륨", "아이오딘":"요오드", "플루오린":"불소", "브로민":"브롬", "타이타늄":"티타늄" };
 // 설정에 맞는 원소 이름 반환
 function elName(name){
   if(useOldNames && OLD_NAMES[name]) return OLD_NAMES[name];
@@ -723,6 +756,7 @@ const SFX = {
   win(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.2,"triangle",0.18),i*130)); }, // 승리: 도미솔도
   lose(){ [392,330,262].forEach((f,i)=>setTimeout(()=>beep(f,0.3,"triangle",0.15),i*180)); },     // 패배: 하강
   click(){ beep(440,0.05,"sine",0.1); },                   // 버튼: 딸깍
+  clang(){ beep(1760,0.05,"square",0.13); beep(2640,0.04,"square",0.07); setTimeout(()=>beep(880,0.06,"triangle",0.09),18); }, // 금속 타격: 깡!
 };
 
 // ---------- 저장 시스템 (localStorage) ----------
@@ -806,6 +840,19 @@ function effAtk(card, field){
   if(!argonBlocked){ field.forEach(c=>{ if(c.iid!==card.iid && c.passive?.kind==="allyAtkUp") a+=c.passive.value; }); }
   if(card.corrode){ a = Math.max(1, a - card.corrode); } // 부식: 공격력 깎임(최소 1)
   return a;
+}
+// 산화막 재생(티타늄 등): 턴이 끝날 때마다 체력 회복 (최대치까지)
+function tickRegen(){
+  if(!G) return;
+  [G.me, G.en].forEach(P=>P.field.forEach(c=>{
+    if(c.passive?.kind==="regen" && c.curHp>0){
+      const mx = c.maxHp||c.hp;
+      if(c.curHp < mx){
+        c.curHp = Math.min(mx, c.curHp + c.passive.value);
+        log(`🛡️ ${elName(c.name)} 산화막 재생! (❤${c.curHp})`);
+      }
+    }
+  }));
 }
 function shieldFor(card, field){ let s=0; field.forEach(c=>{ if(c.iid!==card.iid && c.passive?.kind==="shield") s+=c.passive.value; }); return s; }
 function costOf(card, field){
@@ -1330,7 +1377,7 @@ function showStageMap(){
     const cleared = clearedStages[s];
     if(unlocked){
       cells += `<div class="map-cell ${isBoss?'boss':''} ${cleared?'cleared':''}" onclick="playSpecificStage(${s})">
-        <div class="map-num">${isBoss?'☢️':s}</div>
+        <div class="map-num">${isBoss?(s===10?'☢️':'⛓️'):s}</div>
         <div class="map-label">${isBoss?'보스':(st.label||('스테 '+s))}</div>
         ${cleared?'<div class="map-check">✓</div>':''}
       </div>`;
@@ -1765,49 +1812,107 @@ function startBattle(){
 function showBossFakeClear(){ hideTip();
   busy = true;
   fx("🎉 승리!", "#22c55e"); SFX.win();
+  if(stage===20){ G.p2clicks = 0; trapBossExit(true); }
   setTimeout(()=>{
     document.getElementById("app").innerHTML = `<div id="result">
-      <h1>🏆 보스 격파!</h1>
+      ${stage===20 ? `<h1>🎉 스테이지 클리어!</h1><div style="margin-top:24px;"><button class="btn-primary" id="p2-lobby-btn" onclick="bossLobbyPoke(event)">로비로 →</button></div>` : `<h1>🏆 보스 격파!</h1>
       <p class="subtitle">해냈어요! 보스를 물리쳤어요! 🎉</p>
-      <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>
+      <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>`}
       <div class="ver">v0.24</div></div>`;
   }, 900);
 }
 
-// 보스 2페이즈: 화면깨짐 연출 → 새 봇 (우라늄 풀파워)
+// 보스 2페이즈(10스테 우라늄): 화면 깨짐 연출 → 전환
 function startBossPhase2(){
   busy = true;
-  // 화면 깨짐 연출
   const glitch = document.createElement("div");
   glitch.id = "boss-glitch";
   glitch.innerHTML = `<div class="glitch-text">☢️ 아직 끝나지 않았다...</div>`;
   document.body.appendChild(glitch);
   SFX.lose();
-  setTimeout(()=>{
-    glitch.remove();
-    // 2페이즈: 상대 새로 + 내 필드·손패·에너지 초기화 (맨바닥부터!)
-    const p2 = BOSS_PHASE2;
-    const enDeck = buildDeck(p2.deck);
-    G.en = { hp:p2.hp, maxHp:p2.hp, energy:2, maxEnergy:2, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] };
-    // 내 상태 리셋 (체력은 유지, 필드·손패·에너지·덱은 새로)
-    const myDeck = buildPlayerDeck();
-    G.me.field = [];
-    G.me.deck = myDeck.slice(START_HAND);
-    G.me.hand = myDeck.slice(0, START_HAND);
-    G.me.energy = 1; G.me.maxEnergy = 1;
-    G.botMiss = p2.miss;
-    G.bossPhase = 2;
-    G.turn = "me"; busy=false;
-    sel={hand:null,attacker:null,mode:null};
-    log("☢️ 보스 2페이즈! 우라늄이 폭주하며 판을 쓸어버렸다!");
-    renderBattle();
-    fx("☢️ 2페이즈!", "#a3e635");
-  }, 2200);
+  setTimeout(()=>{ glitch.remove(); doBossPhase2Swap(false); }, 2200);
+}
+function doBossPhase2Swap(isTi){
+  // 2페이즈: 상대 새로 + 내 필드·손패·에너지 초기화 (맨바닥부터!)
+  const p2 = BOSS_PHASE2_MAP[stage] || BOSS_PHASE2;
+  const enDeck = buildDeck(p2.deck);
+  G.en = { hp:p2.hp, maxHp:p2.hp, energy:2, maxEnergy:2, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] };
+  const myDeck = buildPlayerDeck();
+  G.me.field = [];
+  G.me.deck = myDeck.slice(START_HAND);
+  G.me.hand = myDeck.slice(0, START_HAND);
+  G.me.energy = 1; G.me.maxEnergy = 1;
+  G.botMiss = p2.miss;
+  G.bossPhase = 2;
+  G.turnCount = 1;                                    // 2페는 1턴부터 다시 셈(1페와 합산 X)
+  G.me.hbombReady = false; G.en.hbombReady = false;   // 그 턴짜리 플래그 리셋(수소 때린 턴→아인슈타이늄 공짜소환 버그 방지)
+  G.turn = "me"; busy=false;
+  sel={hand:null,attacker:null,mode:null};
+  log(isTi ? "⛓️ 보스 2페이즈! 티타늄이 산화막을 두르고 다시 일어섰다!" : "☢️ 보스 2페이즈! 우라늄이 폭주하며 판을 쓸어버렸다!");
+  renderBattle();
+  const enZone = document.querySelector(".zone.en");
+  if(enZone) enZone.classList.add("phase2-enter"); // 옆에서 2페이즈 보스 등장
+  if(!isTi) fx("☢️ 2페이즈!", "#a3e635"); // 20스테는 문구 없이 스파크+등장 연출로만
 }
 
 // ============================================================
 // 카드 렌더
 // ============================================================
+// 20스테 2페 전환: '로비로'를 쳐도 안 나감. 칠 때마다 쇠 때리는 느낌(깡!), 4번째에 버튼이 깨지고 '2페이즈로 가기' 버튼이 생김.
+function metalHit(cx, cy, shakeEl){
+  const sp = document.createElement("div");
+  sp.className = "metal-hit";
+  sp.style.left = cx+"px"; sp.style.top = cy+"px";
+  let bits="";
+  for(let i=0;i<6;i++){  // 짧고 날카로운 스파크 몇 가닥 (사방 폭죽 X)
+    const ang=(Math.random()*360)|0, dist=24+((Math.random()*30)|0), dur=(0.22+Math.random()*0.16).toFixed(2), delay=(Math.random()*0.04).toFixed(2);
+    bits += `<span class="mspark" style="--ang:${ang}deg;--dist:${dist}px;--dur:${dur}s;--delay:${delay}s;"></span>`;
+  }
+  sp.innerHTML = bits;
+  document.body.appendChild(sp);
+  SFX.clang();
+  if(shakeEl){ shakeEl.classList.remove("hit-shake"); void shakeEl.offsetWidth; shakeEl.classList.add("hit-shake"); }
+  const app=document.getElementById("app");
+  if(app){ app.classList.remove("screen-shake"); void app.offsetWidth; app.classList.add("screen-shake"); }
+  setTimeout(()=>sp.remove(), 700);
+}
+function bossLobbyPoke(ev){
+  if(!G) return;
+  G.p2clicks = (G.p2clicks||0) + 1;
+  const btn = document.getElementById("p2-lobby-btn");
+  let cx = window.innerWidth/2, cy = window.innerHeight/2;
+  if(btn){ const r=btn.getBoundingClientRect(); cx=r.left+r.width/2; cy=r.top+r.height/2; }
+  metalHit(cx, cy, btn);
+  if(G.p2clicks>=4 && btn){
+    // 4번째: 로비로 버튼이 깨지고 → 그 자리에 '2페이즈로 가기' 버튼
+    btn.classList.add("btn-break"); btn.style.pointerEvents="none";
+    setTimeout(()=>{
+      btn.outerHTML = `<button class="btn-primary btn-appear" id="p2-go-btn" onclick="bossEnterPhase2()">2페이즈로 가기</button>`;
+    }, 340);
+  }
+}
+function bossEnterPhase2(){  // '2페이즈로 가기'를 눌러야 입장
+  if(!G) return;
+  trapBossExit(false);
+  doBossPhase2Swap(true);
+}
+let _bossTrap = null;
+function trapBossExit(on){
+  if(on){
+    if(_bossTrap) return;
+    try{ history.pushState({boss:1}, "", location.href); }catch(e){}
+    _bossTrap = function(){
+      try{ history.pushState({boss:1}, "", location.href); }catch(e){}
+      const b=document.getElementById("p2-lobby-btn")||document.getElementById("p2-go-btn");
+      const r=b?b.getBoundingClientRect():null;
+      metalHit(r?r.left+r.width/2:window.innerWidth/2, r?r.top+r.height/2:window.innerHeight/2, b);
+    };
+    window.addEventListener("popstate", _bossTrap);
+  } else {
+    if(_bossTrap){ window.removeEventListener("popstate", _bossTrap); _bossTrap=null; }
+  }
+}
+
 function cardHTML(c, ctx, field){
   const e = c; const g = gColor(e);
   const eff = effAtk(c, field||[]); const buff = eff > c.atk;
@@ -2034,7 +2139,7 @@ function renderBattle(){
       <span>${
         G.versus ? "🤝 친구 대결"
         : G.tutorial ? `🎓 튜토리얼 ${tutoStep>=6?"2":"1"}스테이지`
-        : G.boss ? `${stage}스테이지 보스 ☢️${G.bossPhase===2?" 2페이즈":""}`
+        : G.boss ? `${stage}스테이지 보스 ${stage===10?'☢️':'⛓️'}${G.bossPhase===2?" 2페이즈":""}`
         : "🏆 "+STAGES[stage].label
       }　·　턴 ${G.turnCount}</span>
       ${G.tutorial ? "" : `<button class="exit-btn" onclick="confirmExit()">✕ 나가기</button>`}
@@ -2646,6 +2751,7 @@ async function endTurn(){
   if(G.turn!=="me"||busy) return;
   { const b = tutoBlock("endTurn"); if(b){ toast(b); return; } }
   sel={hand:null,attacker:null,mode:null}; G.me.hbombReady=false; log("— 당신의 턴 종료 —");
+  tickRegen();
   G.turn="en"; busy=true; renderBattle();
   fx("상대 턴", "#ef4444");
   try{
@@ -2997,6 +3103,7 @@ async function versusEnemyTurn(){
     else { c.canAttack=true; c.hasAttacked=false; }
   });
   G.turn="me"; G.turnCount++; busy=false;
+  tickRegen();
   G.me.field.forEach(c=>{
     if(c.active?.kind==="battery" && !c.batteryDone){
       c.chargeTick = (c.chargeTick||0) + 1;
@@ -3352,6 +3459,7 @@ async function enemyTurn(){
     else { c.canAttack=true; c.hasAttacked=false; }
   });
   G.turn="me"; G.turnCount++; busy=false;
+  tickRegen();
   // 리튬 충전: 내 필드의 리튬이 2턴마다 +1 (최대 3), 방출한 리튬은 충전 안 함
   G.me.field.forEach(c=>{
     if(c.active?.kind==="battery" && !c.batteryDone){
@@ -3480,7 +3588,7 @@ function showResult(win){ hideTip();
     clearedStages[stage] = true;
     if(!gachaUnlocked){ gachaUnlocked = true; justUnlockedGacha = true; }
     // 보스(10스테) 첫 클리어 → 우라늄 지급
-    if(st.boss && !owned.includes("U")){ owned.push("U"); bossReward=true; }
+    if(st.boss && stage===10 && !owned.includes("U")){ owned.push("U"); bossReward=true; }
     saveGame();
   }
   // 코인 핵 방지: 10만 이상이면 초기화, 9만5천 이상이면 경고
@@ -3543,14 +3651,21 @@ function showResult(win){ hideTip();
         ${rewardHTML}${moleMsg}${unlockMsg}
         ${choiceBtns}
         <div class="ver">v0.24</div></div>`;
-    } else if(win && isFinalStage && firstClear){
-      // 보스 첫 클리어 = 축하 + 우라늄
-      const uReward = bossReward ? `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
+    } else if(win && firstClear && bossReward){
+      // 10스테 보스 첫 클리어 = 우라늄 획득 + 계속 진행
+      const uReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
         <div style="display:flex;justify-content:center;">${chipHTML("U")}</div>
-        <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">⚡4 · ⚔1 · ❤4 · ☢️방사능 오염</div></div>` : "";
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">⚡4 · ⚔1 · ❤4 · ☢️방사능 오염</div></div>`;
       document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 보스 격파!</h1>
-        <p class="subtitle">보스를 물리쳤어요! 축하합니다! 🎉<br>이제 여기서 코인을 벌며 원소를 모아봐요</p>
+        <p class="subtitle">보스를 물리쳤어요! 전설의 원소를 얻었어요! 🎉</p>
         ${uReward}${moleMsg}${unlockMsg}
+        ${choiceBtns}
+        <div class="ver">v0.24</div></div>`;
+    } else if(win && isFinalStage && firstClear){
+      // 최종 보스(마지막 스테이지) 첫 클리어 = 엔딩
+      document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 최종 보스 격파!</h1>
+        <p class="subtitle">모든 스테이지를 끝냈어요! 정말 대단해요! 🎉<br>이제 여기서 코인을 벌며 원소를 모아봐요</p>
+        ${moleMsg}${unlockMsg}
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로 →</button></div>
