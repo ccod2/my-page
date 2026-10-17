@@ -269,6 +269,14 @@
   .set-divider{ height:1px; background:var(--line); margin:6px 0; }
   .toggle{ background:#3a4250; color:#c4cbdb; border-radius:20px; padding:7px 18px; font-size:13px; font-weight:800; }
   .toggle.on{ background:var(--me); color:#fff; }
+  .upd-list{ max-width:520px; margin:12px auto 0; padding:0 4px; }
+  .upd-card{ background:var(--panel); border:1.5px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:14px; text-align:left; }
+  .upd-head{ font-size:16px; font-weight:900; color:var(--ink); padding-bottom:8px; margin-bottom:10px; border-bottom:1.5px dashed var(--line); }
+  .upd-date{ font-size:12px; font-weight:700; color:var(--ink-soft); }
+  .upd-item{ margin-bottom:12px; }
+  .upd-item:last-child{ margin-bottom:0; }
+  .upd-title{ font-size:14px; font-weight:800; color:var(--me); margin-bottom:4px; }
+  .upd-body{ font-size:13px; line-height:1.55; color:var(--ink-soft); }
 
   /* ===== 도감 ===== */
   .dex-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
@@ -980,6 +988,11 @@ function showVersus(){
         <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">친구가 준 코드를 입력해요</div>
         <button class="btn-active" onclick="showEnterCode()">코드 입력</button>
       </div>
+      <div class="gacha-box" style="margin-top:14px;">
+        <div style="font-size:15px; font-weight:800; margin-bottom:10px;">⚔️ 실시간 대결 <span style="color:var(--me);font-size:11px;">NEW</span></div>
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">같은 방 코드로 둘이 들어와 실시간 대결</div>
+        <button class="btn-active" onclick="showPvpRoom()">실시간 대결</button>
+      </div>
       <button class="btn-ghost" style="margin-top:18px;" onclick="showTitle()">← 로비로</button>
     </div>`;
 }
@@ -1288,6 +1301,40 @@ function doExchange(key){
   showGacha();
 }
 
+// ============================================================
+// 업데이트 소식 — 공지 내용은 선생님이 직접 채워요. (최신이 맨 위)
+// 새 공지 추가: 아래 배열 '맨 앞'에 { version, date, items:[{title, body}, ...] } 한 칸을 넣으면 됩니다.
+//   - 번호(1. 2. ...)는 자동으로 붙어요.  - body 안에서 \n 으로 줄바꿈해요(2~3줄 권장).
+// ============================================================
+const APP_VERSION = "0.24";                              // 게임 버전 (1.0이 되면 업데이트 소식이 보여요)
+const UPDATES_ENABLED = (parseFloat(APP_VERSION) >= 1.0);  // '업데이트 소식'은 1.0부터 표시
+const UPDATES = [
+  { version:"1.0", date:"2026-10-17", items:[
+    { title:"(제목을 적어요)", body:"(여기에 소개글을 2~3줄 적어요.\n줄바꿈은 그대로 보여요.)" },
+    { title:"(제목을 적어요)", body:"(여기에 소개글을 2~3줄 적어요.)" },
+  ]},
+];
+function showUpdates(){
+  if(!UPDATES_ENABLED){ toast("아직 준비 중이에요"); showSettings(); return; }
+  const esc = t => (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const blocks = UPDATES.map(u=>{
+    const items = u.items.map((it,i)=>`
+      <div class="upd-item">
+        <div class="upd-title">${i+1}. ${esc(it.title)}</div>
+        <div class="upd-body">${esc(it.body).replace(/\n/g,"<br>")}</div>
+      </div>`).join("");
+    return `<div class="upd-card">
+      <div class="upd-head">📢 ${esc(u.version)} 업데이트 <span class="upd-date">(${esc(u.date)})</span></div>
+      ${items}
+    </div>`;
+  }).join("");
+  document.getElementById("app").innerHTML = `
+    <div style="padding-top:16px;">
+      <div style="text-align:center;"><h1 style="font-size:24px;">📢 업데이트 소식</h1></div>
+      <div class="upd-list">${blocks || `<div style="text-align:center;color:var(--ink-soft);padding:30px;">아직 소식이 없어요</div>`}</div>
+      <div style="text-align:center;"><button class="btn-ghost" style="margin-top:8px;" onclick="showSettings()">← 설정으로</button></div>
+    </div>`;
+}
 function showSettings(){
   document.getElementById("app").innerHTML = `
     <div style="text-align:center; padding-top:24px;">
@@ -1305,6 +1352,10 @@ function showSettings(){
           <span>📜 전투 기록</span>
           <button class="toggle ${showLog?'on':''}" onclick="toggleLog()">${showLog?'보임':'숨김'}</button>
         </div>
+        ${UPDATES_ENABLED ? `<div class="set-row">
+          <span>📢 업데이트 소식</span>
+          <button class="btn-ghost" style="padding:7px 16px;" onclick="showUpdates()">보기</button>
+        </div>` : ""}
         <div class="set-row">
           <span>💾 진행 저장</span>
           <span style="color:${saveAvailable?'var(--hp)':'#fb923c'}; font-weight:700; font-size:13px;">${saveAvailable?'켜짐 ✓':'사용 불가'}</span>
@@ -2138,6 +2189,7 @@ function renderBattle(){
     <div class="stage-bar">
       <span>${
         G.versus ? "🤝 친구 대결"
+        : G.pvp ? "⚔️ 실시간 대결"
         : G.tutorial ? `🎓 튜토리얼 ${tutoStep>=6?"2":"1"}스테이지`
         : G.boss ? `${stage}스테이지 보스 ${stage===10?'☢️':'⛓️'}${G.bossPhase===2?" 2페이즈":""}`
         : "🏆 "+STAGES[stage].label
@@ -2181,6 +2233,7 @@ function renderBattle(){
   if(newHand && handScroll) newHand.scrollLeft = handScroll;
   if(window.scrollY !== pageY) window.scrollTo(0, pageY);
   const el=document.getElementById("log"); if(el){ el.innerHTML=logs.map(l=>`<div>${l}</div>`).join(""); el.scrollTop=el.scrollHeight; }
+  if(PVP.on && PVP.role==="host" && PVP.ready && G && G.pvp) pvpBroadcast();
 }
 
 function flashHp(side){
@@ -2204,6 +2257,7 @@ function pickAttacker(iid){
 
 function doSummon(){
   if(G.turn!=="me"||busy||sel.hand==null) return;
+  if(G.pvp && G.role==="guest"){ pvpSendAction({kind:"summon", iid:sel.hand}); return; }
   const card = G.me.hand.find(c=>c.iid===sel.hand); if(!card) return;
   { const b = tutoBlock("summon", card); if(b){ toast(b); return; } }
   if(G.me.field.length>=FIELD_MAX){ toast("필드가 가득 찼어요 (최대 5자리)"); return; }
@@ -2257,6 +2311,7 @@ function onSummon(card, owner){
 
 function attackTarget(targetIid){
   if(G.turn!=="me"||busy||sel.attacker==null) return;
+  if(G.pvp && G.role==="guest"){ pvpSendAction({kind:"attackUnit", attacker:sel.attacker, target:targetIid}); return; }
   const aCard = G.me.field.find(c=>c.iid===sel.attacker);
   const tCard = G.en.field.find(c=>c.iid===targetIid);
   if(!aCard||!tCard||!aCard.canAttack||aCard.hasAttacked) return;
@@ -2272,6 +2327,7 @@ function attackTarget(targetIid){
 }
 function attackFace(){
   if(G.turn!=="me"||busy||sel.attacker==null) return;
+  if(G.pvp && G.role==="guest"){ pvpSendAction({kind:"attackFace", attacker:sel.attacker}); return; }
   { const b = tutoBlock("face"); if(b){ toast(b); return; } }
   const aCard = G.me.field.find(c=>c.iid===sel.attacker);
   if(!aCard||!aCard.canAttack||aCard.hasAttacked) return;
@@ -2749,6 +2805,7 @@ function applyRadiation(P, sideName, sideKey){
 // ============================================================
 async function endTurn(){
   if(G.turn!=="me"||busy) return;
+  if(G.pvp){ if(G.role==="guest"){ pvpSendAction({kind:"endTurn"}); } else { pvpEndTurn("me"); } return; }
   { const b = tutoBlock("endTurn"); if(b){ toast(b); return; } }
   sel={hand:null,attacker:null,mode:null}; G.me.hbombReady=false; log("— 당신의 턴 종료 —");
   tickRegen();
@@ -3514,6 +3571,7 @@ function drawFor(p, who){
 // ============================================================
 function checkEnd(){
   if(!G) return false;
+  if(G.pvp) return pvpCheckEnd();
   if(G.en.hp<=0){
     if(G.tutorial){ finishTutorial(false); return true; }
     if(G.versus){ showVersusWin(); return true; }
@@ -3581,6 +3639,7 @@ function showResult(win){ hideTip();
   let moleGain = 0;
   let justUnlockedGacha = false;
   let bossReward = false;
+  let tiReward = false;
   const firstClear = win && !clearedStages[stage];
   if(win){
     moleGain = firstClear ? (STAGE_MOLE[stage]||100) : (STAGE_MOLE_REPEAT[stage]||80);
@@ -3589,6 +3648,7 @@ function showResult(win){ hideTip();
     if(!gachaUnlocked){ gachaUnlocked = true; justUnlockedGacha = true; }
     // 보스(10스테) 첫 클리어 → 우라늄 지급
     if(st.boss && stage===10 && !owned.includes("U")){ owned.push("U"); bossReward=true; }
+    if(st.boss && stage===20 && !owned.includes("Ti")){ owned.push("Ti"); tiReward=true; } // 20스테 보상: 티타늄(정상 보유 카드)
     saveGame();
   }
   // 코인 핵 방지: 10만 이상이면 초기화, 9만5천 이상이면 경고
@@ -3665,6 +3725,9 @@ function showResult(win){ hideTip();
       // 최종 보스(마지막 스테이지) 첫 클리어 = 엔딩
       document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 최종 보스 격파!</h1>
         <p class="subtitle">모든 스테이지를 끝냈어요! 정말 대단해요! 🎉<br>이제 여기서 코인을 벌며 원소를 모아봐요</p>
+        ${tiReward ? `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">⛓️ 전설의 금속 획득!</div>
+          <div style="display:flex;justify-content:center;">${chipHTML("Ti")}</div>
+          <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">⚡4 · ⚔3 · ❤5 · 🛡️산화막 재생</div></div>` : ""}
         ${moleMsg}${unlockMsg}
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
@@ -3739,14 +3802,221 @@ function confirmExit(){
     </div>`;
 }
 function doExit(){
+  if(PVP.on){ try{ NET.send({t:"quit"}); }catch(e){} NET.close(); PVP.on=false; PVP.role=null; PVP.ready=false; }
   G = null;
   busy = false;
   sel = { hand:null, attacker:null, mode:null };
   showTitle();
 }
 
+// ============================================================
+// PvP (v1.0, 뼈대) — 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
+// 전송 계층 교체 가능: 지금은 같은 기기 두 탭 테스트용 BroadcastChannel. PeerJS 연결은 다음 단계.
+// 스테이지·봇 모드는 안 건드림 — G.pvp일 때만 이 구조가 동작.
+// ============================================================
+const PVP = { on:false, role:null, code:null, ready:false };
+const NET = {
+  ch:null,
+  open(code){
+    this.close();
+    try{ this.ch = new BroadcastChannel("ecb-pvp-"+code); this.ch.onmessage = (ev)=>netReceive(ev.data); }catch(e){ this.ch=null; }
+  },
+  send(msg){ try{ if(this.ch) this.ch.postMessage(msg); }catch(e){} },
+  close(){ try{ if(this.ch){ this.ch.close(); this.ch=null; } }catch(e){} }
+};
+function netReceive(m){
+  if(!m || !m.t) return;
+  if(PVP.role==="host"){
+    if(m.t==="join") pvpHostStart(m.deck);
+    else if(m.t==="action") pvpHostApply(m.a);
+    else if(m.t==="quit") pvpOnOppQuit();
+  } else if(PVP.role==="guest"){
+    if(m.t==="state") pvpGuestRender(m.snap);
+    else if(m.t==="result") pvpGuestResult(m.win);
+    else if(m.t==="quit") pvpOnOppQuit();
+  }
+}
+// --- 방 만들기 / 들어가기 ---
+function pvpCreate(code){
+  if(needsDeck()){ toast("먼저 덱을 짜주세요!"); showDex(); return; }
+  PVP.on=true; PVP.role="host"; PVP.code=code; PVP.ready=false;
+  NET.open(code); pvpWaitScreen();
+}
+function pvpJoin(code){
+  if(needsDeck()){ toast("먼저 덱을 짜주세요!"); showDex(); return; }
+  PVP.on=true; PVP.role="guest"; PVP.code=code; PVP.ready=false;
+  NET.open(code);
+  NET.send({ t:"join", deck: activeDeckKeys() });
+  pvpWaitScreen();
+}
+function pvpWaitScreen(){
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:70px;">
+      <h1 style="font-size:24px;">⚔️ 실시간 대결</h1>
+      <p class="subtitle">${PVP.role==="host" ? `방 코드 <b style="font-size:20px;color:var(--me);">${PVP.code}</b><br>친구가 들어오면 바로 시작해요` : `방 <b>${PVP.code}</b>에 들어가는 중...`}</p>
+      <div style="margin-top:18px; font-size:22px; letter-spacing:4px; color:var(--ink-soft);">● ● ●</div>
+      <button class="btn-ghost" style="margin-top:26px;" onclick="pvpQuit()">← 취소</button>
+    </div>`;
+}
+// --- 주인: 손님 입장 → 판 세팅 (주인=me, 손님=en) ---
+function pvpHostStart(guestDeck){
+  const myDeck = buildPlayerDeck();
+  const keys = (guestDeck&&guestDeck.length) ? guestDeck.slice() : ["H","O","N","C"];
+  const enDeck = buildDeck(keys);
+  G = { turn:"me", turnCount:1, botMiss:0, pvp:true, role:"host", enKeys:keys,
+    me:{ hp:START_HP, energy:1, maxEnergy:1, deck:myDeck.slice(START_HAND), hand:myDeck.slice(0,START_HAND), field:[] },
+    en:{ hp:START_HP, maxHp:START_HP, energy:0, maxEnergy:0, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] },
+  };
+  G.me.maxHp = START_HP;
+  PVP.ready=true;
+  logs=[]; sel={hand:null,attacker:null,mode:null}; busy=false;
+  log("⚔️ 실시간 대결 시작! 당신(주인) 먼저예요.");
+  renderBattle();      // 주인 화면 + 브로드캐스트(훅)
+  pvpBroadcast();      // 초기 상태 확실히 전송
+  fx("PvP 시작!", "#a78bfa"); SFX.summon();
+}
+// --- 손님: 받은 상태만 그림 (자기 카드가 아래) ---
+function pvpGuestRender(snap){
+  PVP.ready=true;
+  G = snap; G.pvp=true; G.role="guest";
+  busy=false; sel={hand:null,attacker:null,mode:null};
+  renderBattle();
+}
+// --- 주인: 전체 상태를 손님 시점(me=손님)으로 만들어 보냄 ---
+function pvpSnapForGuest(){
+  const clone = o => JSON.parse(JSON.stringify(o));
+  return {
+    turn: G.turn==="me" ? "en" : "me",   // 손님 시점으로 뒤집기
+    turnCount: G.turnCount, pvp:true, botMiss:0,
+    me: { hp:G.en.hp, maxHp:G.en.maxHp||START_HP, energy:G.en.energy, maxEnergy:G.en.maxEnergy, field:clone(G.en.field), hand:clone(G.en.hand), deck:[], handCount:G.en.hand.length },
+    en: { hp:G.me.hp, maxHp:G.me.maxHp||START_HP, energy:G.me.energy, maxEnergy:G.me.maxEnergy, field:clone(G.me.field), hand:[], deck:[], handCount:G.me.hand.length },
+  };
+}
+function pvpBroadcast(){ if(PVP.on && PVP.role==="host") NET.send({ t:"state", snap: pvpSnapForGuest() }); }
+// --- 손님 행동 전송 (행동 함수 안에서 호출) ---
+function pvpSendAction(a){ NET.send({ t:"action", a:a }); sel={hand:null,attacker:null,mode:null}; renderBattle(); }
+// --- 주인: 손님 행동 적용 (en = 손님) ---
+function pvpHostApply(a){
+  if(!G || PVP.role!=="host" || !a) return;
+  if(G.turn!=="en") return;   // 손님 차례 아니면 무시
+  if(a.kind==="summon") pvpApplySummon("en", a.iid);
+  else if(a.kind==="attackUnit") pvpApplyAttackUnit("en", a.attacker, a.target);
+  else if(a.kind==="attackFace") pvpApplyAttackFace("en", a.attacker);
+  else if(a.kind==="endTurn"){ pvpEndTurn("en"); return; }
+  renderBattle();
+  checkEnd();
+}
+// --- 양쪽 공용 적용 (side = 행동하는 쪽) ---
+function pvpApplySummon(side, iid){
+  const P=G[side]; const card=P.hand.find(c=>c.iid===iid); if(!card) return;
+  if(P.field.length>=FIELD_MAX) return;
+  const realCost=costOf(card, P.field); if(realCost>P.energy) return;
+  P.energy-=realCost;
+  P.hand=P.hand.filter(c=>c.iid!==iid);
+  const nc={...card, canAttack:false, hasAttacked:false};
+  P.field.push(nc);
+  if(card.passive?.kind==="hbomb" && realCost===0) P.hbombReady=false;
+  SFX.summon(); onSummon(nc, P);
+}
+function pvpApplyAttackUnit(side, aIid, tIid){
+  const A=G[side], DS=(side==="me"?"en":"me"), D=G[DS];
+  const aCard=A.field.find(c=>c.iid===aIid), tCard=D.field.find(c=>c.iid===tIid);
+  if(!aCard||!tCard||!aCard.canAttack||aCard.hasAttacked) return;
+  if(aCard.passive?.kind!=="infiltrate" && !tauntTargets(D.field).map(x=>x.iid).includes(tIid)) return;
+  dealToUnit(aCard, tCard, A.field, D, DS==="en"?"상대":"당신", DS);
+  aCard.hasAttacked=true;
+  if(aCard.key==="H") hbombTrigger(A, side==="me"?"당신":"상대");
+}
+function pvpApplyAttackFace(side, aIid){
+  const A=G[side], DS=(side==="me"?"en":"me"), D=G[DS];
+  const aCard=A.field.find(c=>c.iid===aIid);
+  if(!aCard||!aCard.canAttack||aCard.hasAttacked) return;
+  if(aCard.passive?.kind!=="infiltrate" && D.field.length>0) return;
+  const dmg=effAtk(aCard, A.field); D.hp-=dmg;
+  SFX.pierce(); aCard.hasAttacked=true;
+  if(aCard.key==="H") hbombTrigger(A, side==="me"?"당신":"상대");
+  flashHp(DS);
+}
+// --- 턴 넘김 (주인만 시계를 돌림) ---
+function pvpEndTurn(side){
+  if(PVP.role!=="host") return;
+  sel={hand:null,attacker:null,mode:null};
+  G[side].hbombReady=false;
+  tickRegen();
+  const next = side==="me"?"en":"me";
+  G.turn=next; G.turnCount++;
+  pvpStartTurn(next);
+  renderBattle();
+  checkEnd();
+}
+function pvpStartTurn(side){
+  const P=G[side];
+  P.maxEnergy=Math.min(MAX_ENERGY, P.maxEnergy+1);
+  P.energy=P.maxEnergy;
+  if(P.deck.length===0){ P.deck = (side==="me") ? buildPlayerDeck() : buildDeck((G.enKeys&&G.enKeys.length)?G.enKeys:["H","O","N","C"]); }
+  if(P.deck.length && P.hand.length<HAND_MAX){ P.hand.push(P.deck.shift()); }
+  P.field.forEach(c=>{ if(c.flashStunned){ c.canAttack=false; c.hasAttacked=true; c.flashStunned=false; } else { c.canAttack=true; c.hasAttacked=false; } });
+  P.hbombReady=false;
+}
+// --- 승패 (주인 판정) ---
+function pvpCheckEnd(){
+  if(PVP.role!=="host") return false;
+  if(G.en.hp<=0){ pvpFinish(true); return true; }
+  if(G.me.hp<=0){ pvpFinish(false); return true; }
+  return false;
+}
+function pvpFinish(hostWin){
+  NET.send({ t:"result", win: !hostWin });
+  pvpResultScreen(hostWin);
+}
+function pvpResultScreen(win){
+  busy=true;
+  setTimeout(()=>{
+    if(!document.getElementById("app")) return;
+    document.getElementById("app").innerHTML = `<div id="result">
+      <h1>${win?"🏆 승리!":"💀 패배..."}</h1>
+      <p class="subtitle">${win?"실시간 대결에서 이겼어요!":"아쉬워요! 다음엔 이겨봐요"}</p>
+      <div style="margin-top:20px;"><button class="btn-primary" onclick="pvpQuit()">로비로 →</button></div></div>`;
+  }, 600);
+}
+function pvpGuestResult(win){
+  busy=true;
+  if(!document.getElementById("app")) return;
+  document.getElementById("app").innerHTML = `<div id="result">
+    <h1>${win?"🏆 승리!":"💀 패배..."}</h1>
+    <p class="subtitle">${win?"실시간 대결에서 이겼어요!":"아쉬워요! 다음엔 이겨봐요"}</p>
+    <div style="margin-top:20px;"><button class="btn-primary" onclick="pvpQuit()">로비로 →</button></div></div>`;
+}
+function pvpOnOppQuit(){ if(!PVP.on) return; toast("상대가 나갔어요"); pvpQuit(); }
+function pvpQuit(){
+  try{ NET.send({ t:"quit" }); }catch(e){}
+  NET.close();
+  PVP.on=false; PVP.role=null; PVP.ready=false;
+  G=null; busy=false; sel={hand:null,attacker:null,mode:null};
+  showTitle();
+}
+// --- 진입 UI (대결 화면에서) ---
+function showPvpRoom(){
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center; padding-top:20px;">
+      <h1 style="font-size:24px;">⚔️ 실시간 대결</h1>
+      <p class="subtitle">같은 방 코드로 둘이 들어오면 실시간으로 대결해요.<br><span style="font-size:11px;">(지금은 같은 기기 두 탭 테스트용 — 폰끼리 연결은 다음 업데이트)</span></p>
+      <div class="gacha-box" style="margin-top:16px;">
+        <input id="pvp-code" placeholder="방 코드 (예: 1234)" value="1234" style="width:70%;text-align:center;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:16px;font-weight:800;"/>
+      </div>
+      <div style="margin-top:14px; display:flex; gap:10px; justify-content:center;">
+        <button class="btn-primary" onclick="pvpCreate((document.getElementById('pvp-code').value||'1234').trim())">방 만들기</button>
+        <button class="btn-active" onclick="pvpJoin((document.getElementById('pvp-code').value||'1234').trim())">들어가기</button>
+      </div>
+      <button class="btn-ghost" style="margin-top:18px;" onclick="showVersus()">← 뒤로</button>
+    </div>`;
+}
+
 // ---------- 시작 ----------
 const hasSave = loadGame();
+if(hasSave && clearedStages && clearedStages[20] && !owned.includes("Ti") && mole < COIN_CAP){
+  owned.push("Ti"); saveGame();   // 20스테 깬 기록 있으면 티타늄 복구(정상 보유)
+}
 if(hasSave && mole >= COIN_CAP){
   coinCapReset();                 // 핵 감지 → 처음 상태로
   renderTutorial();
