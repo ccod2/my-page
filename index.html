@@ -265,6 +265,19 @@
     60%{ transform:translate(-6px,-4px); }
     80%{ transform:translate(6px,4px); }
   }
+  /* 새 원소: 더 굵고 긴 빛기둥 */
+  .light-pillar.big.rise{ animation:pillar-rise-big .9s ease-out forwards; }
+  @keyframes pillar-rise-big{ 0%{width:0;height:0;opacity:0;} 40%{width:80px;height:88vh;opacity:.95;} 100%{width:120px;height:94vh;opacity:1;} }
+  /* 새 원소: 큰 화면 흔들림 (한 번) */
+  #gacha-anim.shake-big{ animation:screen-shake-big .5s ease-out; }
+  @keyframes screen-shake-big{ 0%,100%{transform:translate(0,0);} 15%{transform:translate(-16px,8px);} 30%{transform:translate(16px,-8px);} 45%{transform:translate(-14px,-6px);} 60%{transform:translate(12px,6px);} 80%{transform:translate(-8px,4px);} }
+  /* 새 원소: 색 고리 펄스 (중앙에서 바깥으로 퍼지며 사라짐, 3겹 시간차) */
+  .gacha-ring{ position:fixed; left:50%; top:50%; width:0; height:0; border-radius:50%; border:5px solid currentColor; box-sizing:border-box; transform:translate(-50%,-50%); opacity:0; z-index:205; pointer-events:none; box-shadow:0 0 22px currentColor; }
+  .gacha-ring.go{ animation:gacha-ring-expand .85s ease-out forwards; }
+  @keyframes gacha-ring-expand{ 0%{ width:0; height:0; opacity:.9; } 70%{ opacity:.45; } 100%{ width:88vmin; height:88vmin; opacity:0; } }
+  /* 새 원소: 색 불꽃 */
+  .gacha-spark{ position:fixed; left:50%; top:50%; width:12px; height:12px; border-radius:50%; z-index:205; pointer-events:none; box-shadow:0 0 10px currentColor; animation:gacha-spark-fly .75s ease-out forwards; }
+  @keyframes gacha-spark-fly{ 0%{transform:translate(-50%,-50%) scale(1);opacity:1;} 100%{transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.3);opacity:0;} }
   .set-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; font-size:15px; font-weight:600; }
   .set-divider{ height:1px; background:var(--line); margin:6px 0; }
   .toggle{ background:#3a4250; color:#c4cbdb; border-radius:20px; padding:7px 18px; font-size:13px; font-weight:800; }
@@ -343,7 +356,7 @@
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 // ============================================================
-// 원소카드게임 v0.25 — 밝은 테마 디자인 개편
+// 원소카드게임 v1.0.0 — 밝은 테마 디자인 개편
 // 로직은 v0.4 그대로 / 겉모습·이펙트·턴표시·화면크기 개선
 // ============================================================
 
@@ -612,6 +625,8 @@ let gachaCount = 0;         // 뽑기 횟수 (첫 2번 새 원소 확정용)
 let showLog = false;        // 전투 로그 표시 (기본 숨김)
 let tutoStep = 0;           // 튜토리얼 진행 단계 (0=튜토 아님)
 let tutoDone = false;       // 튜토리얼 완료 여부 (저장)
+let updatesSeenVersion = null;  // '다음 업데이트까지 보지 않기'로 숨긴 버전 (저장됨)
+let updatesPopupShown = false;  // 이번 접속에서 팝업을 띄웠는지 (저장 안 함)
 
 // ============================================================
 // 덱 공유 코드 시스템 (암호 방식: 덱이 안 보이는 짧은 코드)
@@ -797,7 +812,7 @@ let saveAvailable = false;
 function saveGame(){
   if(!saveAvailable) return;
   try{
-    const data = { owned, deckKeys, stage, maxStage, soundOn, useOldNames, mole, crystal, gachaUnlocked, clearedStages, gachaCount, showLog, tutoDone, v:1 };
+    const data = { owned, deckKeys, stage, maxStage, soundOn, useOldNames, mole, crystal, gachaUnlocked, clearedStages, gachaCount, showLog, tutoDone, updatesSeenVersion, v:1 };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   }catch(e){}
 }
@@ -821,6 +836,7 @@ function loadGame(){
     if(data.showLog !== undefined) showLog = data.showLog;
     if(data.tutoDone !== undefined) tutoDone = data.tutoDone;
     if(data.useOldNames !== undefined) useOldNames = data.useOldNames;
+    if(data.updatesSeenVersion !== undefined) updatesSeenVersion = data.updatesSeenVersion;
     return true;
   }catch(e){ return false; }
 }
@@ -972,11 +988,13 @@ function showTitle(){ hideTip();
           <button class="btn-ghost" onclick="showSettings()">⚙️ 설정</button>
         </div>
       </div>
-      <div class="ver">v0.25</div>
+      <div class="ver">v1.0.0</div>
       <div class="save-status">${saveAvailable
         ? '💾 진행 상황이 자동 저장돼요'
         : '⚠️ 이 환경은 저장이 안 돼요 · 파일로 받으면 저장됩니다'}</div>
     </div>`;
+  // 새 소식 팝업: 타이틀에서만, 튜토 끝낸 사람만, 접속당 1번, 이 버전 '보지 않기' 안 했을 때
+  if(UPDATES_ENABLED && tutoDone && !updatesPopupShown && updatesSeenVersion!==APP_VERSION && UPDATES.length){ updatesPopupShown=true; setTimeout(showUpdatePopup, 250); }
 }
 
 // ---------- 설정 화면 ----------
@@ -1210,16 +1228,15 @@ function playGachaAnim(key, isNew){
   }
   // 다음 양성자까지의 간격 (목탁 리듬)
   function nextInterval(n){
-    // 초반 2개는 겁나 느리게 (빰........ 빰......)
     if(n === 1) return 1100;
     if(n === 2) return 850;
-    // 후반: 60 넘으면 확 빠르게 촤라락 (이전 방식)
     if(n >= 60) return 18;
-    // 중반: 3~60번째, 부드럽게 가속
-    const span = Math.max(1, Math.min(total, 60) - 2);
-    const p = (n - 2) / span;
-    const eased = p * p;
-    return Math.max(55, 450 - eased*395);
+    // 같은 ease-out 거듭제곱 곡선(700→22).
+    // 무거운 원소(40번 이상): 번호 기준(span 56) — 80% 규칙 지키고 끝까진 안 감
+    // 가벼운 원소(40번 미만): 그 원소 마지막 번호까지 압축 — 0.25처럼 빠르게 (끝부분은 80% 아래로 떨어져도 OK)
+    const span = (total >= 40) ? 56 : Math.max(1, total - 3);
+    const p = Math.min(1, (n - 3) / span);
+    return Math.round(22 + (700 - 22) * Math.pow(1 - p, 1.45));
   }
 
   function step(){
@@ -1247,6 +1264,7 @@ function risePillar(){
   if(field){ field.style.transition = "opacity .5s"; field.style.opacity = "0"; }
   if(pillar){
     pillar.style.background = `linear-gradient(to top, ${g.band}, transparent)`;
+    if(gachaResult.isNew) pillar.classList.add("big");   // 새 원소: 키만 더 길게 (폭·번짐은 중복과 동일)
     pillar.style.boxShadow = `0 0 60px 20px ${g.band}`;
     pillar.classList.add("rise");
   }
@@ -1261,12 +1279,31 @@ function burstGacha(){
   const anim = document.getElementById("gacha-anim");
   const pillar = document.getElementById("light-pillar");
   if(flash){ flash.style.background = g.band; flash.classList.add("burst"); }
-  if(anim){ anim.classList.add("shake"); }
+  if(anim){ anim.classList.add(gachaResult.isNew ? "shake-big" : "shake"); }
+  if(gachaResult.isNew && anim){ gachaNewBurst(anim, g.band); }
   // 빛기둥은 팡 터지며 사라짐 (숫자랑 안 겹치게)
   if(pillar){ pillar.style.transition = "opacity .25s"; pillar.style.opacity = "0"; }
   setTimeout(()=>{ if(!gachaSkipped) showGachaNumber(); }, 350);
 }
 
+// 새 원소 전용: 색 고리 펄스 + 원소 색 불꽃
+function gachaNewBurst(anim, color){
+  // 색 고리 3겹이 중앙에서 바깥으로 시간차를 두고 퍼짐 (글자 없음)
+  for(let i=0;i<3;i++){
+    const ring = document.createElement("div");
+    ring.className = "gacha-ring"; ring.style.color = color;
+    ring.style.animationDelay = (i*0.13) + "s";
+    anim.appendChild(ring); void ring.offsetWidth; ring.classList.add("go");
+  }
+  for(let i=0;i<18;i++){
+    const s = document.createElement("div");
+    s.className = "gacha-spark"; s.style.color = color; s.style.background = color;
+    const a = Math.random()*Math.PI*2, d = 140 + Math.random()*180;
+    s.style.setProperty("--dx", Math.cos(a)*d+"px");
+    s.style.setProperty("--dy", Math.sin(a)*d+"px");
+    anim.appendChild(s);
+  }
+}
 function skipGacha(){
   gachaSkipped = true;
   if(gachaTimer) clearTimeout(gachaTimer);
@@ -1334,12 +1371,20 @@ function doExchange(key){
 // 새 공지 추가: 아래 배열 '맨 앞'에 { version, date, items:[{title, body}, ...] } 한 칸을 넣으면 됩니다.
 //   - 번호(1. 2. ...)는 자동으로 붙어요.  - body 안에서 \n 으로 줄바꿈해요(2~3줄 권장).
 // ============================================================
-const APP_VERSION = "0.25";                              // 게임 버전 (1.0이 되면 업데이트 소식이 보여요)
-const UPDATES_ENABLED = (parseFloat(APP_VERSION) >= 1.0);  // '업데이트 소식'은 1.0부터 표시
+const APP_VERSION = "1.0.0";                              // 게임 버전
+// 버전 비교: a >= b ? 숫자 부분을 나눠서 비교 (1.1.0, 1.10.0 도 올바르게)
+function verGE(a, b){
+  const pa=String(a).split('.').map(n=>parseInt(n,10)||0), pb=String(b).split('.').map(n=>parseInt(n,10)||0);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){ const x=pa[i]||0, y=pb[i]||0; if(x!==y) return x>y; }
+  return true;
+}
+const UPDATES_ENABLED = verGE(APP_VERSION, "1.0.0");      // '업데이트 소식'은 1.0.0부터 표시
 const UPDATES = [
-  { version:"1.0", date:"2026-10-17", items:[
-    { title:"(제목을 적어요)", body:"(여기에 소개글을 2~3줄 적어요.\n줄바꿈은 그대로 보여요.)" },
-    { title:"(제목을 적어요)", body:"(여기에 소개글을 2~3줄 적어요.)" },
+  { version:"1.0.0", date:"2026-11-06", items:[
+    { title:"정식 버전이 됐어요!", body:"원소카드게임이 1.0.0 정식 버전이 됐어요. 앞으로도 계속 새로워질 거예요." },
+    { title:"업데이트 소식이 생겼어요.", body:"새 소식이 있으면 접속할 때 알려 줘요. 설정에서 지난 소식도 볼 수 있어요." },
+    { title:"뽑기가 더 두근두근해졌어요.", body:"처음 얻는 원소가 나오면 화면에 빛이 크게 퍼져요. 양성자가 점점 빨라지면서 쌓여요." },
+    { title:"버그를 고치고 더 편하게 만들었어요.", body:"친구와 실시간 대결에서 방 목록이 자꾸 움직이던 걸 고쳤어요. 다시 하기를 누르면 상대도 눌렀는지 알 수 있어요." },
   ]},
 ];
 function showUpdates(){
@@ -1362,6 +1407,29 @@ function showUpdates(){
       <div class="upd-list">${blocks || `<div style="text-align:center;color:var(--ink-soft);padding:30px;">아직 소식이 없어요</div>`}</div>
       <div style="text-align:center;"><button class="btn-ghost" style="margin-top:8px;" onclick="showSettings()">← 설정으로</button></div>
     </div>`;
+}
+// 업데이트 소식 팝업 (타이틀에서 접속당 1번, 튜토리얼 끝낸 사람만)
+function showUpdatePopup(){
+  if(!UPDATES.length) return;
+  if(document.getElementById("upd-popup")) return;
+  const u = UPDATES[0];
+  const esc = t => (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const items = u.items.map((it,i)=>`<div class="upd-item"><div class="upd-title">${i+1}. ${esc(it.title)}</div><div class="upd-body">${esc(it.body).replace(/\n/g,"<br>")}</div></div>`).join("");
+  const ov = document.createElement("div");
+  ov.id = "upd-popup";
+  ov.style.cssText = "position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px;";
+  ov.innerHTML = `<div class="upd-card" style="max-width:420px;width:100%;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;max-height:82vh;overflow:auto;">
+    <div class="upd-head">📢 ${esc(u.version)} 업데이트 <span class="upd-date">(${esc(u.date)})</span></div>
+    ${items}
+    <div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-top:16px;">
+      <button class="btn-ghost" style="white-space:nowrap;" onclick="closeUpdatePopup(false)">닫기</button>
+      <button class="btn-primary" style="white-space:nowrap; font-size:13px; padding-left:12px; padding-right:12px;" onclick="closeUpdatePopup(true)">다음 업데이트까지 보지 않기</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+}
+function closeUpdatePopup(dontShowAgain){
+  const ov=document.getElementById("upd-popup"); if(ov) ov.remove();
+  if(dontShowAgain){ updatesSeenVersion = APP_VERSION; saveGame(); }  // 이 버전은 다시 안 띄움
 }
 function showSettings(){
   document.getElementById("app").innerHTML = `
@@ -1771,7 +1839,7 @@ function showTutoStage1Clear(){ hideTip();
       <p class="subtitle">소환하기, 턴 넘기기, 공격하기를 다 해냈어요!</p>
       <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
         <button class="btn-primary" onclick="tutoToRealPhase()">다음으로 →</button></div>
-      <div class="ver">v0.25</div></div>`;
+      <div class="ver">v1.0.0</div></div>`;
   }, 900);
 }
 // 2스테이지: 에너지 6, 상대 철·질소 등장
@@ -1897,7 +1965,7 @@ function showBossFakeClear(){ hideTip();
       ${stage===20 ? `<h1>🎉 스테이지 클리어!</h1><div style="margin-top:24px;"><button class="btn-primary" id="p2-lobby-btn" onclick="bossLobbyPoke(event)">로비로 →</button></div>` : `<h1>🏆 보스 격파!</h1>
       <p class="subtitle">해냈어요! 보스를 물리쳤어요! 🎉</p>
       <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>`}
-      <div class="ver">v0.25</div></div>`;
+      <div class="ver">v1.0.0</div></div>`;
   }, 900);
 }
 
@@ -3752,7 +3820,7 @@ function showResult(win){ hideTip();
         ${moleMsg}${unlockMsg}
         <p class="subtitle">보상을 하나 골라요! (하나만 받을 수 있어요)</p>
         <div class="reward-choices">${cards}</div>
-        <div class="ver">v0.25</div></div>`;
+        <div class="ver">v1.0.0</div></div>`;
     } else if(win && rewardPool.length === 1){
       // 단일 보상 + 다시/다음
       owned.push(rewardPool[0]); saveGame();
@@ -3763,7 +3831,7 @@ function showResult(win){ hideTip();
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 스테이지 클리어!</h1>
         ${rewardHTML}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v0.25</div></div>`;
+        <div class="ver">v1.0.0</div></div>`;
     } else if(win && firstClear && bossReward){
       // 10스테 보스 첫 클리어 = 우라늄 획득 + 계속 진행
       const uReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
@@ -3773,7 +3841,7 @@ function showResult(win){ hideTip();
         <p class="subtitle">보스를 물리쳤어요! 전설의 원소를 얻었어요! 🎉</p>
         ${uReward}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v0.25</div></div>`;
+        <div class="ver">v1.0.0</div></div>`;
     } else if(win && isFinalStage && firstClear){
       // 최종 보스(마지막 스테이지) 첫 클리어 = 엔딩
       document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 최종 보스 격파!</h1>
@@ -3785,13 +3853,13 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로 →</button></div>
-        <div class="ver">v0.25</div></div>`;
+        <div class="ver">v1.0.0</div></div>`;
     } else if(win){
       // 보상 없음 (반복 클리어 등) + 다시/다음
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 ${isFinalStage?"승리!":"스테이지 클리어!"}</h1>
         ${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v0.25</div></div>`;
+        <div class="ver">v1.0.0</div></div>`;
     } else {
       // 패배
       document.getElementById("app").innerHTML = `<div id="result"><h1>💀 패배...</h1>
@@ -3799,7 +3867,7 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 도전 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
-        <div class="ver">v0.25</div></div>`;
+        <div class="ver">v1.0.0</div></div>`;
     }
     if(coinWarn) toast("10만을 넘기면 핵을 막기 위해 초기화돼요!");
   }, 900);
@@ -3863,12 +3931,12 @@ function doExit(){
 }
 
 // ============================================================
-// PvP (v0.25, 뼈대) — 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
+// PvP (v1.0.0, 뼈대) — 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
 // 전송 계층 교체 가능: 지금은 같은 기기 두 탭 테스트용 BroadcastChannel. PeerJS 연결은 다음 단계.
 // 스테이지·봇 모드는 안 건드림 — G.pvp일 때만 이 구조가 동작.
 // ============================================================
 // ============================================================
-// PvP (v0.25) — 실시간 대결. 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
+// PvP (v1.0.0) — 실시간 대결. 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
 // 연결 계층: PeerJS (신입이2 rps-online.html 재활용 — 방 목록·코드방·핑·끊김·친절한 에러).
 // 스테이지·봇 모드는 안 건드림 — G.pvp일 때만 이 구조가 동작.
 // ============================================================
