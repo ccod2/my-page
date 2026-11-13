@@ -109,6 +109,9 @@
   .card .rad-badge{ position:absolute; top:-8px; right:-8px; background:#a3e635; color:#1a2e05; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .card .reflect-badge{ position:absolute; top:-8px; left:-8px; background:#e2e8f0; color:#1e293b; font-size:11px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .card .lead-badge{ position:absolute; top:14px; right:-8px; background:#64748b; color:#fff; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .card .immune-badge{ position:absolute; top:-8px; left:-8px; background:#38bdf8; color:#082f49; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .sr-spark{ position:fixed; left:50%; top:46%; width:9px; height:9px; border-radius:50%; background:#ef4444; box-shadow:0 0 10px #f87171; z-index:240; pointer-events:none; animation:sr-fly .7s ease-out forwards; }
+  @keyframes sr-fly{ 0%{ transform:translate(-50%,-50%) scale(1); opacity:1; } 100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.3); opacity:0; } }
   .card .tag{ font-size:8px; font-weight:800; color:#dbe0ea; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.55); padding:2px 7px; border-radius:8px; white-space:nowrap; }
 
   /* 하단 고정 능력 툴팁 (카드 위치와 무관, 절대 안 잘림) */
@@ -278,6 +281,42 @@
   /* 새 원소: 색 불꽃 */
   .gacha-spark{ position:fixed; left:50%; top:50%; width:12px; height:12px; border-radius:50%; z-index:205; pointer-events:none; box-shadow:0 0 10px currentColor; animation:gacha-spark-fly .75s ease-out forwards; }
   @keyframes gacha-spark-fly{ 0%{transform:translate(-50%,-50%) scale(1);opacity:1;} 100%{transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.3);opacity:0;} }
+  /* ===== 새 뽑기 연출: 카드 완성 ===== */
+  #gc-wrap{ transform:scale(1.9); transform-origin:center; will-change:transform; }
+  .gc-card{ overflow:visible; }
+  .gc-card .inner{ overflow:visible; }
+  /* 빛 잘림 방지: 아래 stats 칸(공격·체력) 글로우가 위쪽 inner 패널에 덮이지 않게 stats를 위로 올림 */
+  .gc-card .stats{ position:relative; z-index:5; }
+  .gc-card.gc-drop{ animation:gc-drop var(--gc-drop,720ms) linear forwards; transform-origin:center center; }
+  /* 묵직한 낙하: 가속 낙하(ease-in) → 72% 접촉(쿵) → 눌림(squash) → 튕김(stretch) → 원래 크기 */
+  @keyframes gc-drop{
+    0%{   transform:translateY(-130vh) scale(1,1); animation-timing-function:cubic-bezier(.32,0,.67,0); }
+    72%{  transform:translateY(0) scale(1,1); animation-timing-function:ease-out; }
+    82%{  transform:translateY(0) scale(1.1,.8); animation-timing-function:ease-in-out; }
+    91%{  transform:translateY(0) scale(.98,1.05); animation-timing-function:ease-out; }
+    100%{ transform:translateY(0) scale(1,1); }
+  }
+  .gc-hid{ opacity:0; }
+  .gc-on{ animation:gc-pop 300ms ease-out forwards; }
+  @keyframes gc-pop{ 0%{ opacity:0; transform:scale(.5); filter:brightness(2.6); } 55%{ opacity:1; } 100%{ opacity:1; transform:scale(1); filter:brightness(1); } }
+  .gc-card .band{ transition:background .35s ease; }
+  .gc-card .topfill.gc-paint{ animation:gc-pop 360ms ease-out; }
+  #gc-sym{ visibility:hidden; opacity:0; }                 /* 시작: 완전 숨김 (기호는 날아올 때 처음 나타남) */
+  #gc-sym.gc-fly{ visibility:visible; animation:gc-fly var(--gc-sym,480ms) cubic-bezier(.2,.8,.25,1) forwards; }
+  @keyframes gc-fly{ 0%{ opacity:0; transform:translate(120px,-70px) scale(1.7) rotate(16deg); } 55%{ opacity:1; } 100%{ opacity:1; transform:translate(0,0) scale(1) rotate(0); } }
+  /* 값 자리 한가운데에서 퍼지는 둥근 빛(radial glow). 값은 그 빛 위에 나타남. box-shadow 고리가 아니라서 각진 박스·어두운 사각형이 안 생김 */
+  .gc-slot{ position:relative; }
+  .gc-slot .gc-val{ opacity:0; display:inline-block; position:relative; z-index:2; }
+  .gc-slot.gc-lit{ z-index:6; }
+  .gc-slot::after{ content:""; position:absolute; left:50%; top:50%; width:76px; height:76px; transform:translate(-50%,-50%) scale(.3); border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.92), var(--gc-glow,#8ad) 38%, rgba(0,0,0,0) 70%); opacity:0; pointer-events:none; z-index:1; }
+  .gc-slot.gc-lit::after{ animation:gc-glow var(--gc-lit,760ms) ease-out; }
+  .gc-slot.gc-lit .gc-val{ animation:gc-valin var(--gc-lit,760ms) ease-out forwards; }
+  @keyframes gc-glow{ 0%{ opacity:0; transform:translate(-50%,-50%) scale(.3); } 45%{ opacity:1; transform:translate(-50%,-50%) scale(1); } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1.15); } }
+  @keyframes gc-valin{ 0%,42%{ opacity:0; transform:scale(.5); } 58%{ opacity:1; transform:scale(1.18); } 100%{ opacity:1; transform:scale(1); } }
+  /* 가격: 금색 원형 배지 — 원형이라 box-shadow halo가 둥글게 나옴(각짐 없음), 배지를 가리지 않게 radial 대신 halo 사용 */
+  #gc-cost.gc-slot::after{ display:none; }
+  #gc-cost.gc-slot.gc-lit{ animation:gc-costglow var(--gc-lit,760ms) ease-out; }
+  @keyframes gc-costglow{ 0%{ box-shadow:0 2px 5px rgba(0,0,0,.18); } 45%{ box-shadow:0 0 15px 5px rgba(255,255,255,.85), 0 0 28px 11px var(--gold); } 100%{ box-shadow:0 2px 5px rgba(0,0,0,.18); } }
   .set-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; font-size:15px; font-weight:600; }
   .set-divider{ height:1px; background:var(--line); margin:6px 0; }
   .toggle{ background:#3a4250; color:#c4cbdb; border-radius:20px; padding:7px 18px; font-size:13px; font-weight:800; }
@@ -356,7 +395,7 @@
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 // ============================================================
-// 원소카드게임 v1.0.0 — 밝은 테마 디자인 개편
+// 원소카드게임 v1.1.0 — 밝은 테마 디자인 개편
 // 로직은 v0.4 그대로 / 겉모습·이펙트·턴표시·화면크기 개선
 // ============================================================
 
@@ -379,108 +418,128 @@ const GROUP_COLORS = {
 // ---------- 원소 도감 ----------
 const ELEMENTS = {
   H:  { symbol:"H",  name:"수소", number:1,  group:"1족",     cost:1, atk:1, hp:2,
-        passive:null,
-        flavor:"우주에서 제일 가벼운 원소. 싸게 세우는 최소한의 벽." },
+        passive:null
+        },
   O:  { symbol:"O",  name:"산소", number:8,  group:"산소족",   cost:2, atk:2, hp:3,
-        passive:{ kind:"allyAtkUp", value:1, short:"연소 지원", label:"내 다른 원소의 공격력을 1 높여줘요" },
-        flavor:"연소를 도와 불을 키운다. 옆 아군의 공격을 올려준다." },
+        passive:{ kind:"allyAtkUp", value:1, short:"연소 지원", label:"내 다른 원소의 공격력을 1 높여줘요" }
+        },
   N:  { symbol:"N",  name:"질소", number:7,  group:"질소족",   cost:2, atk:1, hp:4,
-        passive:{ kind:"shield", value:1, short:"신선 보존", label:"아군 카드가 받는 피해를 1 줄여줘요" },
-        flavor:"공기의 78%, 반응을 잘 안 해 보존에 쓰인다. 아군을 지킨다." },
+        passive:{ kind:"shield", value:1, short:"신선 보존", label:"아군 카드가 받는 피해를 1 줄여줘요" }
+        },
   C:  { symbol:"C",  name:"탄소", number:6,  group:"탄소족",   cost:3, atk:1, hp:3,
-        passive:{ kind:"costDown", value:1, short:"탄소 촉매", label:"다른 카드의 소환 비용을 1 줄여줘요 (최소 1)" },
-        flavor:"생명과 다이아몬드의 원소. 다른 원소를 더 싸게 불러온다." },
+        passive:{ kind:"costDown", value:1, short:"탄소 촉매", label:"다른 카드의 소환 비용을 1 줄여줘요 (최소 1)" }
+        },
   Fe: { symbol:"Fe", name:"철",   number:26, group:"전이금속", cost:3, atk:3, hp:4,
-        passive:{ kind:"taunt", value:1, short:"자석 방패", label:"적의 공격을 대신 맞아 아군을 지켜줘요" },
-        flavor:"자석에 붙는 금속. 앞장서서 아군을 대신 막아준다." },
+        passive:{ kind:"taunt", value:1, short:"자석 방패", label:"적의 공격을 대신 맞아 아군을 지켜줘요" }
+        },
   Au: { symbol:"Au", name:"금",   number:79, group:"전이금속", cost:4, atk:3, hp:6,
-        passive:{ kind:"immune", value:["독","부식"], short:"부식·독 면역", label:"독, 부식, 방사능 공격을 무시해요" },
-        flavor:"안 녹슬고 안 변하는 금속. 독·부식을 무시하는 방어벽." },
+        passive:{ kind:"immune", value:["독","부식"], short:"부식·독 면역", label:"독, 부식, 방사능 공격을 무시해요" }
+        },
   Na: { symbol:"Na", name:"소듐", number:11, group:"알칼리금속", cost:3, atk:2, hp:3,
         passive:null,
-        active:{ kind:"aoe", value:2, energy:3, short:"물 폭발", label:"에너지 3으로 상대 전체에 2 피해를 줘요. 한 번만 쓸 수 있어요" },
-        flavor:"물에 닿으면 격렬하게 폭발한다. 상대 전체를 휩쓴다." },
+        active:{ kind:"aoe", value:2, energy:3, short:"물 폭발", label:"에너지 3으로 상대 전체에 2 피해를 줘요. 한 번만 쓸 수 있어요" }
+        },
   Cl: { symbol:"Cl", name:"염소", number:17, group:"할로겐", cost:4, atk:1, hp:4,
         passive:null,
-        active:{ kind:"poison", value:1, energy:3, short:"독가스", label:"에너지 3으로 독안개를 퍼뜨려요. 염소가 살아있는 동안 상대 전체가 매 턴 체력이 1씩 줄어요. 한 번만 쓸 수 있어요" },
-        flavor:"퍼지는 독가스가 상대를 서서히 중독시킨다." },
+        active:{ kind:"poison", value:1, energy:3, short:"독가스", label:"에너지 3으로 독안개를 퍼뜨려요. 염소가 살아있는 동안 상대 전체가 매 턴 체력이 1씩 줄어요. 한 번만 쓸 수 있어요" }
+        },
   He: { symbol:"He", name:"헬륨", number:2, group:"비활성기체", cost:1, atk:0, hp:2,
-        passive:{ kind:"lastStand", value:1, short:"불활성", label:"쓰러질 만한 공격을 받아도 딱 한 번은 체력 1로 버텨요" },
-        flavor:"반응을 거의 안 하는 안정된 기체. 한 번은 끄떡없이 버틴다." },
+        passive:{ kind:"lastStand", value:1, short:"불활성", label:"쓰러질 만한 공격을 받아도 딱 한 번은 체력 1로 버텨요" }
+        },
   Li: { symbol:"Li", name:"리튬", number:3, group:"알칼리금속", cost:3, atk:2, hp:3,
         passive:null,
-        active:{ kind:"battery", value:1, energy:0, short:"방출", label:"충전한 에너지를 모두 방출해요 (2턴마다 1씩 충전, 최대 3). 한 번 쓰면 더는 충전되지 않아요" },
-        flavor:"배터리의 원소. 에너지를 모았다가 필요할 때 방출한다." },
+        active:{ kind:"battery", value:1, energy:0, short:"방출", label:"충전한 에너지를 모두 방출해요 (2턴마다 1씩 충전, 최대 3). 한 번 쓰면 더는 충전되지 않아요" }
+        },
   Mg: { symbol:"Mg", name:"마그네슘", number:12, group:"알칼리토금속", cost:5, atk:3, hp:5,
         passive:null,
-        active:{ kind:"stun", value:1, energy:6, short:"섬광", label:"에너지 6으로 눈부신 빛을 터뜨려, 상대 카드 전체가 다음 턴 공격하지 못해요. 한 번만 쓸 수 있어요" },
-        flavor:"타오르면 눈부시게 빛난다. 섬광으로 상대 전체의 눈을 멀게 한다." },
+        active:{ kind:"stun", value:1, energy:6, short:"섬광", label:"에너지 6으로 눈부신 빛을 터뜨려, 상대 카드 전체가 다음 턴 공격하지 못해요. 한 번만 쓸 수 있어요" }
+        },
   Ca: { symbol:"Ca", name:"칼슘", number:20, group:"알칼리토금속", cost:4, atk:2, hp:4,
-        passive:{ kind:"boneUp", value:1, short:"뼈 강화", label:"등장할 때, 체력이 가장 높은 다른 아군의 최대·현재 체력을 1 올려줘요" },
-        flavor:"뼈와 이의 원소. 든든한 아군을 더 단단하게 만든다." },
+        passive:{ kind:"boneUp", value:1, short:"뼈 강화", label:"등장할 때, 체력이 가장 높은 다른 아군의 최대·현재 체력을 1 올려줘요" }
+        },
   K:  { symbol:"K", name:"포타슘", number:19, group:"알칼리금속", cost:3, atk:1, hp:3,
         passive:null,
-        active:{ kind:"heal", value:1, energy:2, short:"회복", label:"에너지 2로 아군 하나의 체력을 1 회복해요. 매 턴 쓸 수 있어요" },
-        flavor:"바나나에 많은 영양의 원소. 아군의 체력을 회복시킨다." },
+        active:{ kind:"heal", value:1, energy:2, short:"회복", label:"에너지 2로 아군 하나의 체력을 1 회복해요. 매 턴 쓸 수 있어요" }
+        },
   P:  { symbol:"P", name:"인", number:15, group:"질소족", cost:4, atk:3, hp:1,
         passive:null,
-        active:{ kind:"blast", value:9, energy:5, short:"발화", label:"에너지 5로 상대 하나에게 9의 강한 피해를 줘요. 한 번만 쓸 수 있어요" },
-        flavor:"성냥처럼 확 타오른다. 한 방은 강하지만 몸은 유리처럼 약하다." },
+        active:{ kind:"blast", value:9, energy:5, short:"발화", label:"에너지 5로 상대 하나에게 9의 강한 피해를 줘요. 한 번만 쓸 수 있어요" }
+        },
   Al: { symbol:"Al", name:"알루미늄", number:13, group:"붕소족", cost:2, atk:3, hp:3,
-        passive:null,
-        flavor:"가볍고 흔한 금속. 어디에나 무난하게 쓸 수 있다." },
+        passive:null
+        },
   Hg: { symbol:"Hg", name:"수은", number:80, group:"전이금속", cost:4, atk:3, hp:4,
-        passive:{ kind:"infiltrate", value:1, short:"침투", label:"원하는 상대 카드도, 본체도 마음대로 공격할 수 있어요" },
-        flavor:"흐르는 액체 금속. 방어벽 사이로 스며들어 본체를 노린다." },
+        passive:{ kind:"infiltrate", value:1, short:"침투", label:"원하는 상대 카드도, 본체도 마음대로 공격할 수 있어요" }
+        },
   U:  { symbol:"U", name:"우라늄", number:92, group:"악티늄족", cost:4, atk:1, hp:4,
-        passive:{ kind:"radiation", value:2, turns:2, short:"방사능 오염", label:"우라늄이 공격하거나 우라늄을 공격한 카드는 방사능에 오염돼, 매 턴 체력이 2씩 2턴 줄어요" },
-        flavor:"방사능을 내뿜는 원소. 스치기만 해도 서서히 무너진다." },
+        passive:{ kind:"radiation", value:2, turns:2, short:"방사능 오염", label:"우라늄이 공격하거나 우라늄을 공격한 카드는 방사능에 오염돼, 매 턴 체력이 2씩 2턴 줄어요" }
+        },
   Ag: { symbol:"Ag", name:"은", number:47, group:"전이금속", cost:4, atk:1, hp:4,
         passive:null,
-        active:{ kind:"reflect", value:0, energy:4, short:"반사", label:"받은 피해를 거울처럼 모아 둬요. 에너지 4로 모은 만큼 한꺼번에 돌려줘요 (상대 카드가 없으면 본체로). 쓰고 나면 0부터 다시 모아요. 한 턴에 한 번만 쓸 수 있어요" },
-        flavor:"빛을 가장 잘 반사하는 금속. 거울의 원소답게 받은 만큼 돌려준다." },
+        active:{ kind:"reflect", value:0, energy:4, short:"반사", label:"받은 피해를 거울처럼 모아 둬요. 에너지 4로 모은 만큼 한꺼번에 돌려줘요 (상대 카드가 없으면 본체로). 쓰고 나면 0부터 다시 모아요. 한 턴에 한 번만 쓸 수 있어요" }
+        },
   Pb: { symbol:"Pb", name:"납", number:82, group:"탄소족", cost:3, atk:1, hp:3,
         passive:null,
-        active:{ kind:"leadPoison", value:1, energy:4, short:"축적독", label:"한 턴에 한 번, 에너지 4로 상대 하나에게 축적독을 걸어요. 시간이 갈수록 독이 쌓여 체력이 점점 많이 줄어요" },
-        flavor:"몸에 조금씩 쌓이는 무서운 금속. 한 놈만 끈질기게 괴롭힌다." },
+        active:{ kind:"leadPoison", value:1, energy:4, short:"축적독", label:"한 턴에 한 번, 에너지 4로 상대 하나에게 축적독을 걸어요. 시간이 갈수록 독이 쌓여 체력이 점점 많이 줄어요" }
+        },
   Si: { symbol:"Si", name:"규소", number:14, group:"탄소족", cost:2, atk:1, hp:3,
-        passive:{ kind:"solar", short:"태양전지", label:"공격을 받으면 받은 피해만큼 에너지를 얻어요" },
-        flavor:"햇빛을 전기로 바꾸는 태양전지의 재료. 공격을 받으면 그 힘을 에너지로 바꾼다." },
+        passive:{ kind:"solar", short:"태양전지", label:"공격을 받으면 받은 피해만큼 에너지를 얻어요" }
+        },
   Es: { symbol:"Es", name:"아인슈타이늄", number:99, group:"악티늄족", cost:7, atk:4, hp:5,
-        passive:{ kind:"hbomb", value:1, short:"수소폭탄", label:"내 수소가 상대를 공격한 턴에는, 아인슈타이늄을 에너지 없이 공짜로 소환할 수 있어요!" },
-        flavor:"수소폭탄 실험의 잔해에서 처음 발견된 원소. 수소가 터진 턴엔 공짜로 불러낸다." },
+        passive:{ kind:"hbomb", value:1, short:"수소폭탄", label:"내 수소가 상대를 공격한 턴에는, 아인슈타이늄을 에너지 없이 공짜로 소환할 수 있어요!" }
+        },
   Ar: { symbol:"Ar", name:"아르곤", number:18, group:"비활성기체", cost:2, atk:1, hp:4,
-        passive:{ kind:"argon", value:1, short:"산소 차단", label:"상대 산소의 「연소 지원」을 막아요" },
-        flavor:"불을 끄는 소화 가스로 쓰이는 기체. 산소를 밀어내서 불이 못 붙게 막는다." },
+        passive:{ kind:"argon", value:1, short:"산소 차단", label:"상대 산소의 「연소 지원」을 막아요" }
+        },
   B:  { symbol:"B",  name:"붕소", number:5,  group:"붕소족", cost:2, atk:1, hp:4,
-        passive:{ kind:"boron", value:1, short:"중성자 차단", label:"관통으로 본체에 넘어오는 피해를 1 줄여요" },
-        flavor:"중성자를 흡수해 반응이 넘치지 않게 막아주는 원소. 넘치는 피해를 줄여준다." },
+        passive:{ kind:"boron", value:2, short:"중성자 차단", label:"관통으로 본체에 넘어오는 피해를 2 줄여요" }
+        },
   I:  { symbol:"I",  name:"아이오딘", number:53, group:"할로겐", cost:2, atk:1, hp:3,
         passive:null,
-        active:{ kind:"cleanse", value:1, energy:3, short:"소독", label:"한 턴에 한 번, 에너지 3으로 아군 하나의 독과 방사능을 없애요." },
-        flavor:"상처를 소독하고 방사능에 대비하는 약으로 쓰인다. 아군의 독과 방사능을 씻어낸다." },
+        active:{ kind:"cleanse", value:1, energy:3, short:"소독", label:"한 턴에 한 번, 에너지 3으로 아군 하나의 독과 방사능을 없애고, 2턴 동안 걸리지 않게 해요." }
+        },
   F:  { symbol:"F",  name:"플루오린", number:9, group:"할로겐", cost:3, atk:1, hp:3,
         passive:null,
-        active:{ kind:"corrode", value:1, energy:3, short:"부식", label:"한 턴에 한 번, 에너지 3으로 상대 하나의 공격력을 1 깎아요. (최소 1까지)" },
-        flavor:"금속도 녹슬게 하는 원소. 상대의 공격력을 약하게 만든다." },
+        active:{ kind:"corrode", value:1, energy:3, short:"부식", label:"한 턴에 한 번, 에너지 3으로 상대 하나의 공격력을 1 깎아요. (최소 1까지)" }
+        },
   Nd: { symbol:"Nd", name:"네오디뮴", number:60, group:"란타넘족", cost:4, atk:1, hp:4,
         passive:null,
-        active:{ kind:"focus", value:0, energy:4, short:"응집", label:"한 턴에 한 번, 에너지 4로 아직 공격하지 않은 아군들의 공격력을 모아 상대 하나에게 한 방을 날려요." },
-        flavor:"한 점에 힘을 모으는 레이저에 쓰이는 원소. 아군의 공격력을 자기에게 모은다." },
+        active:{ kind:"focus", value:0, energy:4, short:"응집", label:"한 턴에 한 번, 에너지 4로 아직 공격하지 않은 아군들의 공격력을 모아 상대 하나에게 한 방을 날려요." }
+        },
   Ir: { symbol:"Ir", name:"이리듐", number:77, group:"전이금속", cost:2, atk:1, hp:1,
         passive:{ kind:"meteor", value:1, short:"운석 낙하", label:"등장하면 상대 전체에 운석 피해를 1 줘요." },
-        active:null,
-        flavor:"운석에 많이 들어 있는 금속. 등장하면 상대 필드에 운석을 떨어뜨린다." },
+        active:null
+        },
   Ti: { symbol:"Ti", name:"타이타늄", number:22, group:"전이금속", cost:4, atk:3, hp:5,
         passive:{ kind:"regen", value:2, short:"산화막 재생", label:"턴이 끝날 때마다 스스로 체력을 2 회복해요." },
-        active:null,
-        flavor:"아무리 깎아내도 다시 단단해지는 금속. 턴이 끝날 때마다 스스로 회복한다." },
+        active:null
+        },
+  Cu: { symbol:"Cu", name:"구리", number:29, group:"전이금속", cost:2, atk:2, hp:2,
+        passive:{ kind:"charge", short:"전기 속도", label:"소환하자마자 공격할 수 있어요" }
+        },
+  Sr: { symbol:"Sr", name:"스트론튬", number:38, group:"알칼리토금속", cost:2, atk:1, hp:3,
+        passive:{ kind:"deathBurst", value:1, short:"불꽃놀이", label:"쓰러지면 상대 카드 전체에 1 피해를 줘요" }
+        },
 };
-// 붕소: ownerField(죽은 카드 주인 필드)에 붕소가 살아 있으면 관통 피해 1 감소 (0 밑으로 안 내려감)
+// 붕소: ownerField(죽은 카드 주인 필드)에 붕소가 살아 있으면 관통 피해 2 감소 (0 밑으로 안 내려감)
 function boronReduce(overflow, ownerField){
   if(overflow<=0) return overflow;
   const boronCount = ownerField ? ownerField.filter(c=>c.passive?.kind==="boron").length : 0;
-  return Math.max(0, overflow - boronCount); // 붕소 한 장당 관통 1 감소
+  return Math.max(0, overflow - boronCount*2); // 붕소 한 장당 관통 2 감소
+}
+// ===== 면역 처리 (금과 아이오딘은 막는 상태가 달라 목록을 각각 둠) =====
+const GOLD_IMMUNE   = ["독","부식","방사능"];   // 금(passive immune)
+const IODINE_IMMUNE = ["독","방사능"];           // 아이오딘 소독 후 면역 (부식은 못 막음)
+function isImmuneTo(card, type){
+  if(!card) return false;
+  if(card.passive?.kind==="immune" && GOLD_IMMUNE.includes(type)) return true;   // 금
+  if((card.immuneTurns||0) > 0 && IODINE_IMMUNE.includes(type)) return true;     // 아이오딘 2턴 면역
+  return false;
+}
+// 아이오딘 소독: 독·방사능 제거 + 2턴 면역 (방사능 radTurns와 같은 기준으로 매 턴 1 감소)
+function applyCleanse(tgt){
+  tgt.radTurns = 0; tgt.leadStacks = 0; tgt.leadTick = 0;
+  tgt.immuneTurns = 2;
 }
 // 뽑기·교환에서 안 나오는 특별 원소 (우라늄=보스 보상, 아인슈타이늄=코드 입력)
 const SPECIAL_KEYS = ["U","Es","Ti"];
@@ -491,121 +550,121 @@ const DEX = [
   [1,"H","수소",1,1,"우주에서 가장 흔하고 가벼운 원소라, 적은 에너지로 낼 수 있어요"],
   [2,"He","헬륨",1,18,"반응을 거의 안 하는 안정된 기체라, 한 번은 끄떡없이 버텨요"],
   [3,"Li","리튬",2,1,"배터리에 쓰이는 원소라, 에너지를 모았다가 방출해요"],
-  [4,"Be","베릴륨",2,2,"가볍고 단단한 금속이에요"],
+  [4,"Be","베릴륨",2,2,""],
   [5,"B","붕소",2,13,"원자로가 넘치지 않게 막아주는 원소라, 넘쳐 들어오는 관통 피해를 줄여줘요"],
   [6,"C","탄소",2,14,"다른 물질의 변화를 돕는 성질이 있어, 다른 원소를 부를 때 에너지를 아껴줘요"],
   [7,"N","질소",2,15,"과자 봉지에 넣어 과자를 지켜주듯, 아군을 보호해줘요"],
   [8,"O","산소",2,16,"불을 활활 타오르게 하듯, 옆의 원소가 더 세게 공격하게 해줘요"],
   [9,"F","플루오린",2,17,"금속도 녹슬게 하는 원소라, 상대의 공격력을 약하게 만들어요"],
-  [10,"Ne","네온",2,18,"간판 불빛에 쓰이는 기체예요"],
+  [10,"Ne","네온",2,18,""],
   [11,"Na","소듐",3,1,"물에 닿으면 터지는 성질이라, 상대 전체를 폭발로 공격해요"],
   [12,"Mg","마그네슘",3,2,"타오르면 눈부시게 빛나는 금속이라, 섬광으로 상대 전체를 눈멀게 해요"],
   [13,"Al","알루미늄",3,13,"가볍고 흔한 금속이라, 어디에나 무난하게 쓸 수 있어요"],
   [14,"Si","규소",3,14,"햇빛을 전기로 바꾸는 태양전지의 재료라서, 공격을 받으면 그 힘을 에너지로 바꿔요"],
   [15,"P","인",3,15,"성냥처럼 확 타오르는 원소라, 한 방은 강하지만 몸은 약해요"],
-  [16,"S","황",3,16,"노란색이고 화약에 쓰여요"],
+  [16,"S","황",3,16,""],
   [17,"Cl","염소",3,17,"독가스처럼 퍼지는 성질이라, 상대 전체를 서서히 중독시켜요"],
   [18,"Ar","아르곤",3,18,"박물관 유물이 부식되지 않게 산소를 막아주듯, 산소의 연소지원을 막아요"],
   [19,"K","포타슘",4,1,"바나나에 많은 영양 원소라, 아군의 체력을 회복시켜줘요"],
   [20,"Ca","칼슘",4,2,"뼈와 이의 원소라, 든든한 아군을 더 튼튼하게 만들어줘요"],
-  [21,"Sc","스칸듐",4,3,"가벼운 운동 장비에 쓰여요"],
+  [21,"Sc","스칸듐",4,3,""],
   [22,"Ti","타이타늄",4,4,"아무리 깎아내도 다시 단단해지는 금속이라, 턴이 끝날 때마다 스스로 회복해요"],
-  [23,"V","바나듐",4,5,"강철을 더 단단하게 만들어요"],
-  [24,"Cr","크로뮴",4,6,"반짝이는 도금에 쓰이는 금속이에요"],
-  [25,"Mn","망가니즈",4,7,"강철을 만들 때 넣는 금속이에요"],
+  [23,"V","바나듐",4,5,""],
+  [24,"Cr","크로뮴",4,6,""],
+  [25,"Mn","망가니즈",4,7,""],
   [26,"Fe","철",4,8,"자석이 철에 달라붙듯, 적의 공격도 철에게 끌려와 대신 맞아줘요"],
-  [27,"Co","코발트",4,9,"파란색 물감에 쓰이는 금속이에요"],
-  [28,"Ni","니켈",4,10,"동전에 쓰이는 금속이에요"],
-  [29,"Cu","구리",4,11,"전선에 쓰이는 붉은 금속이에요"],
-  [30,"Zn","아연",4,12,"철이 녹슬지 않게 도와줘요"],
-  [31,"Ga","갈륨",4,13,"손 위에서 녹는 신기한 금속이에요"],
-  [32,"Ge","저마늄",4,14,"반도체에 쓰이는 원소예요"],
-  [33,"As","비소",4,15,"독이 있는 위험한 원소예요"],
-  [34,"Se","셀레늄",4,16,"몸에 조금 필요한 원소예요"],
-  [35,"Br","브로민",4,17,"실온에서 액체인 붉은 원소예요"],
-  [36,"Kr","크립톤",4,18,"특수 전등에 쓰이는 기체예요"],
-  [37,"Rb","루비듐",5,1,"아주 잘 반응하는 금속이에요"],
-  [38,"Sr","스트론튬",5,2,"빨간 불꽃놀이를 만드는 원소예요"],
-  [39,"Y","이트륨",5,3,"LED와 화면에 쓰여요"],
-  [40,"Zr","지르코늄",5,4,"보석처럼 반짝이는 금속이에요"],
-  [41,"Nb","나이오븀",5,5,"강한 자석을 만드는 데 쓰여요"],
-  [42,"Mo","몰리브데넘",5,6,"강철을 튼튼하게 하는 금속이에요"],
-  [43,"Tc","테크네튬",5,7,"병원 검사에 쓰이는 원소예요"],
-  [44,"Ru","루테늄",5,8,"전자제품에 쓰이는 금속이에요"],
-  [45,"Rh","로듐",5,9,"아주 비싸고 반짝이는 금속이에요"],
-  [46,"Pd","팔라듐",5,10,"자동차 배기가스를 줄여줘요"],
+  [27,"Co","코발트",4,9,""],
+  [28,"Ni","니켈",4,10,""],
+  [29,"Cu","구리",4,11,"전선을 타고 전기가 빨리 전해지듯, 소환하자마자 빨리 공격할 수 있어요"],
+  [30,"Zn","아연",4,12,""],
+  [31,"Ga","갈륨",4,13,""],
+  [32,"Ge","저마늄",4,14,""],
+  [33,"As","비소",4,15,""],
+  [34,"Se","셀레늄",4,16,""],
+  [35,"Br","브로민",4,17,""],
+  [36,"Kr","크립톤",4,18,""],
+  [37,"Rb","루비듐",5,1,""],
+  [38,"Sr","스트론튬",5,2,"폭죽에 쓰이는 원소라, 쓰러지면 불꽃놀이처럼 터져서 상대 전체를 공격해요"],
+  [39,"Y","이트륨",5,3,""],
+  [40,"Zr","지르코늄",5,4,""],
+  [41,"Nb","나이오븀",5,5,""],
+  [42,"Mo","몰리브데넘",5,6,""],
+  [43,"Tc","테크네튬",5,7,""],
+  [44,"Ru","루테늄",5,8,""],
+  [45,"Rh","로듐",5,9,""],
+  [46,"Pd","팔라듐",5,10,""],
   [47,"Ag","은",5,11,"빛을 잘 반사해 거울에 쓰이는 금속이라, 받은 피해를 모아 되돌려줘요"],
-  [48,"Cd","카드뮴",5,12,"충전지에 쓰이는 금속이에요"],
-  [49,"In","인듐",5,13,"터치스크린에 쓰이는 원소예요"],
-  [50,"Sn","주석",5,14,"통조림 캔을 코팅하는 금속이에요"],
-  [51,"Sb","안티모니",5,15,"불에 잘 안 타게 도와줘요"],
-  [52,"Te","텔루륨",5,16,"태양전지에 쓰이는 원소예요"],
-  [53,"I","아이오딘",5,17,"상처를 소독하는 약이자 방사능에 대비하는 약으로 쓰여서, 아군의 독과 방사능을 씻어내 줘요"],
-  [54,"Xe","제논",5,18,"자동차 밝은 전조등에 쓰여요"],
-  [55,"Cs","세슘",6,1,"아주 정확한 시계에 쓰여요"],
-  [56,"Ba","바륨",6,2,"병원 엑스레이 검사에 쓰여요"],
-  [57,"La","란타넘",9,4,"카메라 렌즈에 쓰이는 원소예요"],
-  [58,"Ce","세륨",9,5,"라이터 돌에 쓰이는 원소예요"],
-  [59,"Pr","프라세오디뮴",9,6,"강한 자석을 만드는 원소예요"],
+  [48,"Cd","카드뮴",5,12,""],
+  [49,"In","인듐",5,13,""],
+  [50,"Sn","주석",5,14,""],
+  [51,"Sb","안티모니",5,15,""],
+  [52,"Te","텔루륨",5,16,""],
+  [53,"I","아이오딘",5,17,"상처를 소독하는 약이자 방사능에 대비하는 약으로 쓰여서, 아군의 독과 방사능을 씻어내고 한동안 막아 줘요"],
+  [54,"Xe","제논",5,18,""],
+  [55,"Cs","세슘",6,1,""],
+  [56,"Ba","바륨",6,2,""],
+  [57,"La","란타넘",9,4,""],
+  [58,"Ce","세륨",9,5,""],
+  [59,"Pr","프라세오디뮴",9,6,""],
   [60,"Nd","네오디뮴",9,7,"한 점에 힘을 모으는 레이저에 쓰이는 원소라, 아군의 공격력을 자기에게 모아요"],
-  [61,"Pm","프로메튬",9,8,"빛을 내는 야광에 쓰여요"],
-  [62,"Sm","사마륨",9,9,"자석에 쓰이는 원소예요"],
-  [63,"Eu","유로퓸",9,10,"화면의 빨간색을 내는 원소예요"],
-  [64,"Gd","가돌리늄",9,11,"병원 검사에 쓰이는 원소예요"],
-  [65,"Tb","터븀",9,12,"초록빛을 내는 원소예요"],
-  [66,"Dy","디스프로슘",9,13,"자석을 튼튼하게 하는 원소예요"],
-  [67,"Ho","홀뮴",9,14,"강한 자기장을 만드는 원소예요"],
-  [68,"Er","어븀",9,15,"광섬유 통신에 쓰이는 원소예요"],
-  [69,"Tm","툴륨",9,16,"휴대용 엑스레이에 쓰여요"],
-  [70,"Yb","이터븀",9,17,"정밀한 시계에 쓰이는 원소예요"],
-  [71,"Lu","루테튬",9,18,"암 검사에 쓰이는 원소예요"],
-  [72,"Hf","하프늄",6,4,"원자로에 쓰이는 금속이에요"],
-  [73,"Ta","탄탈럼",6,5,"휴대폰 부품에 쓰이는 금속이에요"],
-  [74,"W","텅스텐",6,6,"전구 필라멘트에 쓰이는 금속이에요"],
-  [75,"Re","레늄",6,7,"제트엔진에 쓰이는 금속이에요"],
-  [76,"Os","오스뮴",6,8,"가장 무거운 금속 중 하나예요"],
+  [61,"Pm","프로메튬",9,8,""],
+  [62,"Sm","사마륨",9,9,""],
+  [63,"Eu","유로퓸",9,10,""],
+  [64,"Gd","가돌리늄",9,11,""],
+  [65,"Tb","터븀",9,12,""],
+  [66,"Dy","디스프로슘",9,13,""],
+  [67,"Ho","홀뮴",9,14,""],
+  [68,"Er","어븀",9,15,""],
+  [69,"Tm","툴륨",9,16,""],
+  [70,"Yb","이터븀",9,17,""],
+  [71,"Lu","루테튬",9,18,""],
+  [72,"Hf","하프늄",6,4,""],
+  [73,"Ta","탄탈럼",6,5,""],
+  [74,"W","텅스텐",6,6,""],
+  [75,"Re","레늄",6,7,""],
+  [76,"Os","오스뮴",6,8,""],
   [77,"Ir","이리듐",6,9,"운석에 많이 들어 있는 금속이라, 등장하면 상대 필드에 운석을 떨어뜨려요"],
-  [78,"Pt","백금",6,10,"보석과 반지에 쓰이는 귀한 금속이에요"],
+  [78,"Pt","백금",6,10,""],
   [79,"Au","금",6,11,"녹슬지도 변하지도 않아서, 독과 부식 공격이 안 통해요"],
   [80,"Hg","수은",6,12,"흐르는 액체 금속이라, 방어를 뚫고 본체를 직접 노려요"],
-  [81,"Tl","탈륨",6,13,"예전에 쓰였던 위험한 원소예요"],
+  [81,"Tl","탈륨",6,13,""],
   [82,"Pb","납",6,14,"몸에 조금씩 쌓이는 독성 금속이라, 한 상대를 갈수록 더 아프게 해요"],
-  [83,"Bi","비스무트",6,15,"무지개색을 내는 금속이에요"],
-  [84,"Po","폴로늄",6,16,"방사선을 내는 위험한 원소예요"],
-  [85,"At","아스타틴",6,17,"아주 드문 방사성 원소예요"],
-  [86,"Rn","라돈",6,18,"땅에서 나오는 방사성 기체예요"],
-  [87,"Fr","프랑슘",7,1,"매우 드문 방사성 금속이에요"],
-  [88,"Ra","라듐",7,2,"빛을 내는 방사성 원소예요"],
-  [89,"Ac","악티늄",10,4,"강한 방사선을 내는 원소예요"],
-  [90,"Th","토륨",10,5,"미래 원자력 연료로 연구돼요"],
-  [91,"Pa","프로트악티늄",10,6,"드문 방사성 원소예요"],
+  [83,"Bi","비스무트",6,15,""],
+  [84,"Po","폴로늄",6,16,""],
+  [85,"At","아스타틴",6,17,""],
+  [86,"Rn","라돈",6,18,""],
+  [87,"Fr","프랑슘",7,1,""],
+  [88,"Ra","라듐",7,2,""],
+  [89,"Ac","악티늄",10,4,""],
+  [90,"Th","토륨",10,5,""],
+  [91,"Pa","프로트악티늄",10,6,""],
   [92,"U","우라늄",10,7,"방사능을 내뿜는 원소라, 스치기만 해도 상대가 서서히 아파요"],
-  [93,"Np","넵투늄",10,8,"우라늄에서 만들어지는 원소예요"],
-  [94,"Pu","플루토늄",10,9,"원자력에 쓰이는 원소예요"],
-  [95,"Am","아메리슘",10,10,"화재경보기에 쓰이는 원소예요"],
-  [96,"Cm","퀴륨",10,11,"우주탐사선 전력에 쓰여요"],
-  [97,"Bk","버클륨",10,12,"실험실에서 만든 원소예요"],
-  [98,"Cf","캘리포늄",10,13,"금속 탐지에 쓰이는 원소예요"],
+  [93,"Np","넵투늄",10,8,""],
+  [94,"Pu","플루토늄",10,9,""],
+  [95,"Am","아메리슘",10,10,""],
+  [96,"Cm","퀴륨",10,11,""],
+  [97,"Bk","버클륨",10,12,""],
+  [98,"Cf","캘리포늄",10,13,""],
   [99,"Es","아인슈타이늄",10,14,"수소폭탄 실험에서 처음 발견된 원소라, 수소가 공격한 턴엔 공짜로 불러낼 수 있어요"],
-  [100,"Fm","페르뮴",10,15,"실험실에서만 만들어지는 원소예요"],
-  [101,"Md","멘델레븀",10,16,"주기율표를 만든 학자 이름이에요"],
-  [102,"No","노벨륨",10,17,"노벨상에서 이름을 딴 원소예요"],
-  [103,"Lr","로렌슘",10,18,"실험실에서 만든 무거운 원소예요"],
-  [104,"Rf","러더포듐",7,4,"실험실에서 만든 원소예요"],
-  [105,"Db","더브늄",7,5,"실험실에서 만든 원소예요"],
-  [106,"Sg","시보귬",7,6,"실험실에서 만든 원소예요"],
-  [107,"Bh","보륨",7,7,"실험실에서 만든 원소예요"],
-  [108,"Hs","하슘",7,8,"실험실에서 만든 원소예요"],
-  [109,"Mt","마이트너륨",7,9,"실험실에서 만든 원소예요"],
-  [110,"Ds","다름슈타튬",7,10,"실험실에서 만든 원소예요"],
-  [111,"Rg","뢴트게늄",7,11,"엑스선을 발견한 학자 이름이에요"],
-  [112,"Cn","코페르니슘",7,12,"천문학자 코페르니쿠스 이름이에요"],
-  [113,"Nh","니호늄",7,13,"일본에서 만든 원소예요"],
-  [114,"Fl","플레로븀",7,14,"실험실에서 만든 원소예요"],
-  [115,"Mc","모스코븀",7,15,"실험실에서 만든 원소예요"],
-  [116,"Lv","리버모륨",7,16,"실험실에서 만든 원소예요"],
-  [117,"Ts","테네신",7,17,"실험실에서 만든 원소예요"],
-  [118,"Og","오가네손",7,18,"가장 무거운 원소예요"],
+  [100,"Fm","페르뮴",10,15,""],
+  [101,"Md","멘델레븀",10,16,""],
+  [102,"No","노벨륨",10,17,""],
+  [103,"Lr","로렌슘",10,18,""],
+  [104,"Rf","러더포듐",7,4,""],
+  [105,"Db","더브늄",7,5,""],
+  [106,"Sg","시보귬",7,6,""],
+  [107,"Bh","보륨",7,7,""],
+  [108,"Hs","하슘",7,8,""],
+  [109,"Mt","마이트너륨",7,9,""],
+  [110,"Ds","다름슈타튬",7,10,""],
+  [111,"Rg","뢴트게늄",7,11,""],
+  [112,"Cn","코페르니슘",7,12,""],
+  [113,"Nh","니호늄",7,13,""],
+  [114,"Fl","플레로븀",7,14,""],
+  [115,"Mc","모스코븀",7,15,""],
+  [116,"Lv","리버모륨",7,16,""],
+  [117,"Ts","테네신",7,17,""],
+  [118,"Og","오가네손",7,18,""],
 ];
 const DEX_MAP = {}; DEX.forEach(d=>{ DEX_MAP[d[1]] = {number:d[0], symbol:d[1], name:d[2], row:d[3], col:d[4], desc:d[5]}; });
 function gColor(el){ return GROUP_COLORS[el.group] || {band:"#94a3b8", fill:"#94a3b8", glow:"rgba(148,163,184,.4)"}; }
@@ -687,8 +746,8 @@ function decodeDeck(code){
 }
 const GACHA_COST = 500;
 const CRYSTAL_FOR_ELEMENT = 10;
-const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500, 11:1100, 12:1200, 13:1300, 14:1400, 15:1500, 16:1500, 17:1600, 18:1600, 19:1700, 20:2000 };  // 첫 클리어 코인 (우상향)
-const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500, 11:350, 12:400, 13:450, 14:450, 15:500, 16:500, 17:550, 18:550, 19:550, 20:650 }; // 반복 (첫의 1/3, 50단위)
+const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500, 11:1100, 12:1200, 13:1300, 14:1400, 15:1500, 16:1500, 17:1600, 18:1600, 19:1700, 20:2000, 21:1600, 22:1600 };  // 첫 클리어 코인 (우상향)
+const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500, 11:350, 12:400, 13:450, 14:450, 15:500, 16:500, 17:550, 18:550, 19:550, 20:650, 21:550, 22:550 }; // 반복 (첫의 1/3, 50단위)
 let reward = null, G = null, logs = [], busy = false;
 let sel = { hand:null, attacker:null, mode:null }; // mode: 'attack' | 'active'
 let stage = 1;        // '가': 지금 하는 판 (전투 시작이 따라감, 맵에서 고르면 바뀜)
@@ -719,8 +778,10 @@ const STAGES = {
   18: { hp:30, deck:["Li","O","Mg","P","Nd","Hg"],        miss:0.12, reward:null,  label:"스테이지 18" },
   19: { hp:35, deck:["H","C","N","O","Fe","Au"],          miss:0.06, reward:null,  label:"스테이지 19" },
   20: { hp:35, deck:["Au","Hg","Al","Pb","Ag","Mg"],      miss:0.02, reward:null,  label:"스테이지 20 · 보스", boss:true },
+  21: { hp:35, deck:["Cu","N","O","Fe","C","Si"],         miss:0.08, reward:null,  label:"스테이지 21" },
+  22: { hp:35, deck:["Sr","Ag","Ir","Si","Al","Cl"],      miss:0.08, reward:null,  label:"스테이지 22" },
 };
-const MAX_STAGE = 20;
+const MAX_STAGE = 22;
 // 보스 2페이즈 설정
 const BOSS_PHASE2 = { hp:30, deck:["U","Hg","P","Mg","Cl","Au"], miss:0.13 };
 const BOSS_PHASE2_MAP = { 10: BOSS_PHASE2, 20: { hp:35, deck:["Ti","K","P","Ar","N","O"], miss:0.02 } };
@@ -988,13 +1049,13 @@ function showTitle(){ hideTip();
           <button class="btn-ghost" onclick="showSettings()">⚙️ 설정</button>
         </div>
       </div>
-      <div class="ver">v1.0.0</div>
+      <div class="ver">v1.1.0</div>
       <div class="save-status">${saveAvailable
         ? '💾 진행 상황이 자동 저장돼요'
         : '⚠️ 이 환경은 저장이 안 돼요 · 파일로 받으면 저장됩니다'}</div>
     </div>`;
   // 새 소식 팝업: 타이틀에서만, 튜토 끝낸 사람만, 접속당 1번, 이 버전 '보지 않기' 안 했을 때
-  if(UPDATES_ENABLED && tutoDone && !updatesPopupShown && updatesSeenVersion!==APP_VERSION && UPDATES.length){ updatesPopupShown=true; setTimeout(showUpdatePopup, 250); }
+  if(UPDATES_ENABLED && tutoDone && !updatesPopupShown && updatesSeenVersion!==APP_VERSION && UPDATES.length && UPDATES[0].version===APP_VERSION){ updatesPopupShown=true; setTimeout(showUpdatePopup, 250); }
 }
 
 // ---------- 설정 화면 ----------
@@ -1163,6 +1224,16 @@ function showGacha(){
 }
 
 // 뽑기 실행
+// ===== 뽑기 연출 선택 =====
+const GACHA_STYLE = "card";   // "card"=새 카드 완성 연출, "classic"=기존 양성자·빛기둥
+// 새 연출 단계별 시간(ms) — 폰 보고 조절. 원소 무게와 무관하게 전체 길이 동일.
+const DROP_DURATION = 720;  // 1. 낙하+착지(가속 낙하→눌림→튕김) 전체 길이. 숫자만 바꿔 조절
+const GC_LIT    = 760;   // 칸이 빛났다가 값이 나타나는 시간 (가격·공격·체력·원자번호·이름 공통)
+const GC_COLOR  = 300;   // 3. 족 색 채움 (원자번호 빛나기 전 잠깐)
+const SYMBOL_EXTRA_DELAY = 760;  // 원자번호 등장 후, 기호가 날아오기 전 '한 박자' 더 쉼 (값 등장 간격 = GC_LIT와 동일). 숫자만 바꿔 조절
+const GC_SYMBOL = 520;   // 4. 기호 날아듦
+const GC_AFTER  = 1450;  // 6. 터진 후 결과 화면까지 (현재 뽑기와 동일 — 배율 적용 안 함)
+const GACHA_TIME_SCALE = 2.0;  // 낙하~터짐 구간 전체 배율. 1.0=수정 전 속도, 2.0=2배. (GC_AFTER엔 미적용)
 function doGacha(){
   if(mole < GACHA_COST){ toast("코인이 부족해요"); return; }
   mole -= GACHA_COST;
@@ -1191,8 +1262,14 @@ function doGacha(){
   playGachaAnim(key, isNew);
 }
 
-// 양성자 모이는 연출 (목탁 리듬: 처음 느리게 → 점점 빠르게, 60넘으면 촤라락)
+// 뽑기 연출 분기: GACHA_STYLE 로 둘 중 하나 선택
 function playGachaAnim(key, isNew){
+  if(GACHA_STYLE === "classic") return playGachaClassic(key, isNew);
+  return playGachaCard(key, isNew);
+}
+
+// [기존 연출] 양성자·빛기둥 (GACHA_STYLE="classic" 일 때 사용 — 그대로 보존)
+function playGachaClassic(key, isNew){
   const e = ELEMENTS[key];
   const total = e.number;
   const g = gColor(e);
@@ -1253,6 +1330,78 @@ function playGachaAnim(key, isNew){
   gachaTimer = setTimeout(step, 400); // 첫 양성자 전 살짝 뜸
 }
 let gachaResult = null, gachaTimer = null, gachaSkipped = false;
+
+// [새 연출] 카드 완성: 낙하 → (칸 빛남→값) 가격·공격·체력 → 족색 → 번호 → 기호 날아듦 → 이름 + 새원소/중복 연출
+function playGachaCard(key, isNew){
+  if(gachaTimer) clearTimeout(gachaTimer);
+  const e = ELEMENTS[key]; const g = gColor(e);
+  const pv = e.passive ? ("✨ "+e.passive.short) : (e.active ? ("💥 "+e.active.short) : "");
+  const T = ms => Math.round(ms * GACHA_TIME_SCALE);   // 낙하~터짐 구간에만 적용
+  document.getElementById("app").innerHTML = `
+    <div id="gacha-anim" onclick="skipGacha()" style="--gc-drop:${T(DROP_DURATION)}ms; --gc-sym:${T(GC_SYMBOL)}ms; --gc-lit:${T(GC_LIT)}ms; --gc-glow:${g.band};">
+      <div id="gc-wrap">
+        <div class="card gc-card" id="gc-card">
+          <div class="cost gc-slot" id="gc-cost"><span class="gc-val">${e.cost}</span></div>
+          <div class="band" id="gc-band" style="background:#2b3443;"></div>
+          <div class="inner">
+            <div class="topfill" id="gc-topfill" style="background:transparent;"></div>
+            <div class="num gc-slot" id="gc-num"><span class="gc-val">${e.number}</span></div>
+            <div class="sym" id="gc-sym">${e.symbol}</div>
+            <div class="nm gc-slot" id="gc-nm"><span class="gc-val">${elName(e.name)}</span></div>
+            <div class="pv gc-hid" id="gc-pv">${pv}</div>
+          </div>
+          <div class="stats">
+            <span class="atk gc-slot" id="gc-atk"><span class="gc-val">⚔ ${e.atk}</span></span>
+            <span class="hp gc-slot" id="gc-hp"><span class="gc-val">❤ ${e.hp}</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="gacha-skip">화면을 누르면 건너뛰기</div>
+    </div>`;
+  gachaResult = { key, isNew };
+  gachaSkipped = false;
+  const anim = document.getElementById("gacha-anim");
+  const card = document.getElementById("gc-card");
+  const gcLit = id => { const el=document.getElementById(id); if(el){ el.classList.remove("gc-lit"); void el.offsetWidth; el.classList.add("gc-lit"); } };  // 칸 빛남→값
+  const gcShow = id => { const el=document.getElementById(id); if(el){ el.classList.remove("gc-hid"); el.classList.add("gc-on"); } };                      // 단순 등장(스킬줄)
+  const gcShake = cls => { anim.classList.remove("shake","shake-big"); void anim.offsetWidth; anim.classList.add(cls); };
+
+  // 1. 빈 카드가 위에서 쿵 떨어짐
+  card.classList.add("gc-drop");
+  // 착지(접촉) 순간 작은 흔들림 — shake-big보다 작게. 낙하 애니 접촉 시점(72%)에 맞춤
+  setTimeout(()=>{ if(!gachaSkipped) gcShake("shake"); }, T(Math.round(DROP_DURATION*0.72)));
+  gachaTimer = setTimeout(()=>{ if(gachaSkipped) return;
+    gcLit("gc-cost");                 // 2. 가격 칸 빛남→값 (가장 먼저)
+    gachaTimer = setTimeout(()=>{ if(gachaSkipped) return;
+      gcLit("gc-atk"); gcLit("gc-hp");  // 3. 체력·공격력 칸 빛남→값 (지금 순서 그대로 = 함께)
+      gachaTimer = setTimeout(()=>{ if(gachaSkipped) return;
+        // 4. 카드 윗부분 족 색 채움
+        document.getElementById("gc-band").style.background = g.band;
+        const tf = document.getElementById("gc-topfill");
+        tf.style.background = `linear-gradient(180deg, ${g.band}, transparent)`; tf.classList.add("gc-paint");
+        gachaTimer = setTimeout(()=>{ if(gachaSkipped) return;
+          gcLit("gc-num");             // 5. 원자번호 칸 빛남→값
+          gachaTimer = setTimeout(()=>{ if(gachaSkipped) return;
+            // 6. 원자 기호가 화면 바깥에서 날아와 붙음
+            const sym = document.getElementById("gc-sym");
+            void sym.offsetWidth; sym.classList.add("gc-fly");
+            gachaTimer = setTimeout(()=>{ if(gachaSkipped) return;
+              // 7. 이름 칸 빛남→값
+              gcLit("gc-nm"); gcShow("gc-pv");
+              // 이름(값)이 나타나는 순간 터뜨림 (글로우 중간)
+              setTimeout(()=>{ if(gachaSkipped) return;
+                if(isNew){ gcShake("shake-big"); gachaNewBurst(anim, g.band); }  // 고리 펄스+색 불꽃+큰 흔들림 (빛기둥·NEW! 없음)
+                else { gcShake("shake"); }                                       // 중복: 기존 소형 연출
+              }, T(Math.round(GC_LIT*0.5)));
+              // 8. 결과 화면 (터진 후 — GC_AFTER는 배율 미적용)
+              gachaTimer = setTimeout(()=>{ if(!gachaSkipped) showGachaResult(); }, T(Math.round(GC_LIT*0.5)) + GC_AFTER);
+            }, T(GC_SYMBOL));
+          }, T(GC_COLOR + SYMBOL_EXTRA_DELAY));
+        }, T(GC_LIT));
+      }, T(GC_LIT));
+    }, T(GC_LIT));
+  }, T(DROP_DURATION));
+}
 
 // 빛기둥 솟구침 (족 색)
 function risePillar(){
@@ -1371,7 +1520,7 @@ function doExchange(key){
 // 새 공지 추가: 아래 배열 '맨 앞'에 { version, date, items:[{title, body}, ...] } 한 칸을 넣으면 됩니다.
 //   - 번호(1. 2. ...)는 자동으로 붙어요.  - body 안에서 \n 으로 줄바꿈해요(2~3줄 권장).
 // ============================================================
-const APP_VERSION = "1.0.0";                              // 게임 버전
+const APP_VERSION = "1.1.0";                              // 게임 버전
 // 버전 비교: a >= b ? 숫자 부분을 나눠서 비교 (1.1.0, 1.10.0 도 올바르게)
 function verGE(a, b){
   const pa=String(a).split('.').map(n=>parseInt(n,10)||0), pb=String(b).split('.').map(n=>parseInt(n,10)||0);
@@ -1380,6 +1529,11 @@ function verGE(a, b){
 }
 const UPDATES_ENABLED = verGE(APP_VERSION, "1.0.0");      // '업데이트 소식'은 1.0.0부터 표시
 const UPDATES = [
+  { version:"1.1.0", date:"2026-11-13", items:[
+    { title:"신규 원소 2종 추가", body:"구리: 전기 속도\n스트론튬: 불꽃놀이\n자세한 설명은 인게임에서 확인하실 수 있습니다." },
+    { title:"신규 스테이지 2개", body:"21~22 스테이지 추가 (20스테이지 클리어 후 도전 가능)" },
+    { title:"밸런스 패치", body:"3-1. 붕소: 관통 피해 감소량 증가 (1 → 2)\n3-2. 아이오딘: 소독을 사용하면 해당 카드가 2턴 동안 독과 방사능에 면역이 됩니다." },
+  ]},
   { version:"1.0.0", date:"2026-11-06", items:[
     { title:"정식 버전이 됐어요!", body:"원소카드게임이 1.0.0 정식 버전이 됐어요. 앞으로도 계속 새로워질 거예요." },
     { title:"업데이트 소식이 생겼어요.", body:"새 소식이 있으면 접속할 때 알려 줘요. 설정에서 지난 소식도 볼 수 있어요." },
@@ -1519,7 +1673,7 @@ function showStageMap(){
   for(let s=1; s<=MAX_STAGE; s++){
     const st = STAGES[s];
     // 갈 수 있는 조건: 이미 깼거나(clearedStages) 현재 도전 스테이지(stage)까지
-    const unlocked = clearedStages[s] || s<=maxStage;
+    const unlocked = clearedStages[s] || s<=maxStage || clearedStages[s-1];
     const isBoss = st.boss;
     const cleared = clearedStages[s];
     if(unlocked){
@@ -1546,7 +1700,7 @@ function showStageMap(){
 // 특정 스테이지 플레이 (진행도는 안 건드림)
 function playSpecificStage(s){
   if(needsDeck()){ toast("먼저 덱을 짜주세요!"); showDex(); return; }
-  const unlocked = clearedStages[s] || s<=maxStage;
+  const unlocked = clearedStages[s] || s<=maxStage || clearedStages[s-1];
   if(!unlocked){ toast("아직 잠긴 스테이지예요"); return; }
   stage = s;          // 도전 스테이지만 바꾸고
   saveGame();
@@ -1839,7 +1993,7 @@ function showTutoStage1Clear(){ hideTip();
       <p class="subtitle">소환하기, 턴 넘기기, 공격하기를 다 해냈어요!</p>
       <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
         <button class="btn-primary" onclick="tutoToRealPhase()">다음으로 →</button></div>
-      <div class="ver">v1.0.0</div></div>`;
+      <div class="ver">v1.1.0</div></div>`;
   }, 900);
 }
 // 2스테이지: 에너지 6, 상대 철·질소 등장
@@ -1881,7 +2035,7 @@ async function tutoEnemyTurn(){
       const h = G.en.hand.find(c=>c.key==="H") || makeCard("H"); // 혹시 없으면 만들어서 냄
       if(h){
         G.en.hand = G.en.hand.filter(c=>c.iid!==h.iid);
-        G.en.field.push({...h, canAttack:false, hasAttacked:false});
+        G.en.field.push({...h, canAttack: h.passive?.kind==="charge", hasAttacked:false});
         log("🔶 상대가 수소를 냈어요");
       }
     }
@@ -1965,7 +2119,7 @@ function showBossFakeClear(){ hideTip();
       ${stage===20 ? `<h1>🎉 스테이지 클리어!</h1><div style="margin-top:24px;"><button class="btn-primary" id="p2-lobby-btn" onclick="bossLobbyPoke(event)">로비로 →</button></div>` : `<h1>🏆 보스 격파!</h1>
       <p class="subtitle">해냈어요! 보스를 물리쳤어요! 🎉</p>
       <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>`}
-      <div class="ver">v1.0.0</div></div>`;
+      <div class="ver">v1.1.0</div></div>`;
   }, 900);
 }
 
@@ -1983,7 +2137,7 @@ function doBossPhase2Swap(isTi){
   // 2페이즈: 상대 새로 + 내 필드·손패·에너지 초기화 (맨바닥부터!)
   const p2 = BOSS_PHASE2_MAP[stage] || BOSS_PHASE2;
   const enDeck = buildDeck(p2.deck);
-  G.en = { hp:p2.hp, maxHp:p2.hp, energy:2, maxEnergy:2, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] };
+  G.en = { hp:p2.hp, maxHp:p2.hp, energy:0, maxEnergy:0, deck:enDeck.slice(START_HAND), hand:enDeck.slice(0,START_HAND), field:[] };  // 일반 전투와 동일: 0/0으로 시작 → 상대 첫 턴 에너지 1
   const myDeck = buildPlayerDeck();
   G.me.field = [];
   G.me.deck = myDeck.slice(START_HAND);
@@ -2089,6 +2243,11 @@ function cardHTML(c, ctx, field){
   if(ctx!=="hand" && (c.leadStacks||0) > 0){
     lead = `<div class="lead-badge">☠️${c.leadStacks}</div>`;
   }
+  // 아이오딘 면역 표시 (작게)
+  let imm = "";
+  if(ctx!=="hand" && (c.immuneTurns||0) > 0){
+    imm = `<div class="immune-badge">🛡️${c.immuneTurns}</div>`;
+  }
   let cls="card", onclick="", cost="";
 
   if(ctx==="hand"){
@@ -2104,7 +2263,7 @@ function cardHTML(c, ctx, field){
     // 회복 모드: 내 카드가 회복 대상
     if(sel.mode==="heal" && c.iid!==sel.srcIid){
       cls+=" targetable-heal"; onclick=`onclick="healTarget(${c.iid})"`;
-    } else if(sel.mode==="cleanse" && (c.radTurns>0 || (c.leadStacks||0)>0)){
+    } else if(sel.mode==="cleanse"){
       cls+=" targetable-heal"; onclick=`onclick="cleanseTarget(${c.iid})"`;
     } else {
       const ready = G.turn==="me" && !busy && c.canAttack && !c.hasAttacked;
@@ -2118,7 +2277,7 @@ function cardHTML(c, ctx, field){
         cls+=" targetable"; onclick=`onclick="reflectTarget(${c.iid})"`;
       }
     } else if(sel.mode==="lead"){
-      if(c.passive?.kind!=="immune" && tauntTargets(G.en.field).map(x=>x.iid).includes(c.iid)){
+      if(!isImmuneTo(c,"독") && tauntTargets(G.en.field).map(x=>x.iid).includes(c.iid)){
         cls+=" targetable"; onclick=`onclick="leadTarget(${c.iid})"`;
       }
     } else if(sel.mode==="blast"){
@@ -2159,7 +2318,7 @@ function cardHTML(c, ctx, field){
   }
 
   return `<div class="${cls}" ${onclick} ${hover}>
-    ${cost}${taunt}${battery}${lastStand}${rad}${reflect}${lead}
+    ${cost}${taunt}${battery}${lastStand}${rad}${reflect}${lead}${imm}
     <div class="band" style="background:${g.band}"></div>
     <div class="inner">
       <div class="topfill" style="background:linear-gradient(180deg, ${g.band}, transparent)"></div>
@@ -2361,7 +2520,7 @@ function doSummon(){
   if(realCost>G.me.energy){ toast("에너지가 부족해요"); return; }
   G.me.energy -= realCost;
   G.me.hand = G.me.hand.filter(c=>c.iid!==card.iid);
-  const newCard = {...card, canAttack:false, hasAttacked:false};
+  const newCard = {...card, canAttack: card.passive?.kind==="charge", hasAttacked:false};
   G.me.field.push(newCard);
   const freeBomb = card.passive?.kind==="hbomb" && realCost===0;
   if(freeBomb) G.me.hbombReady = false;
@@ -2473,14 +2632,29 @@ function contaminate(card){
   if(!card) return;
   if(card.radTurns > 0) return;      // 이미 오염됨 → 갱신 안 함
   if(card.passive?.kind==="radiation") return; // 우라늄끼리는 오염 안 됨
-  if(card.passive?.kind==="immune"){ log(`✨ ${elName(card.name)}은(는) 방사능도 튕겨냈어요!`); return; } // 금 면역
+  if(isImmuneTo(card,"방사능")){ log(`✨ ${elName(card.name)}은(는) 방사능도 튕겨냈어요!`); return; } // 금·아이오딘 면역
   card.radTurns = 2;
   log(`☢️ ${elName(card.name)}이(가) 방사능에 오염됐어요! (2턴간 매턴 2씩)`);
   fx(`☢️ ${elName(card.name)} 오염!`, "#a3e635");
 }
 
 // 카드가 죽을 때 효과
+// 스트론튬 불꽃놀이 연출 (붉은 불꽃이 퍼짐)
+function srBurstFx(){
+  try{
+    for(let i=0;i<12;i++){
+      const s=document.createElement("div"); s.className="sr-spark";
+      const a=Math.random()*Math.PI*2, d=70+Math.random()*120;
+      s.style.setProperty("--dx", Math.cos(a)*d+"px");
+      s.style.setProperty("--dy", Math.sin(a)*d+"px");
+      document.body.appendChild(s);
+      setTimeout(()=>{ try{s.remove();}catch(e){} }, 760);
+    }
+  }catch(e){}
+}
 function onCardDeath(card, owner, killer){
+  if(card._dead) return;   // 중복 처리 방지 (스트론튬 연쇄 폭발 안전)
+  card._dead = true;
   // 튜토리얼: 앞을 막던 상대 철이 사라지면 본체 공격 안내로
   if(G && G.tutorial && tutoStep===7 && owner===G.en && card.key==="Fe"){
     tutoStep=8; setTimeout(()=>{ if(tutoStep===8) showTutoGuide(); }, 500);
@@ -2496,6 +2670,22 @@ function onCardDeath(card, owner, killer){
     fx(`☢️ 방사능이 본체로 ${dmg}!`, "#a3e635"); SFX.pierce();
     const side = (G && owner===G.me) ? "me" : "en";
     setTimeout(()=>flashHp(side), 60);
+  }
+  // 스트론튬 불꽃놀이: 쓰러지면 상대 필드 전체에 피해 (이리듐 운석과 동일 — 질소 보호막 무시, 체력 직접 깎음)
+  if(card.passive?.kind==="deathBurst" && G){
+    const foe = (owner===G.me) ? G.en : G.me;
+    const live = foe.field.filter(t=>!t._dead && t.curHp>0);
+    if(live.length){
+      srBurstFx(); fx(`🎆 불꽃놀이!`, "#ef4444");
+      log(`🎆 ${elName(card.name)} 불꽃놀이! 상대 카드 전체에 ${card.passive.value} 피해`);
+      live.forEach(t=>{ t.curHp -= card.passive.value; solarGain(t, foe, card.passive.value); });
+      const dead = foe.field.filter(t=>!t._dead && t.curHp<=0);
+      dead.forEach(t=>{
+        if(t.passive?.kind==="lastStand" && !t.lastStandUsed){ t.lastStandUsed=true; t.curHp=1; }
+        else { log(`☠️ ${elName(t.name)} 파괴됨!`); onCardDeath(t, foe, null); }
+      });
+      foe.field = foe.field.filter(t=>t.curHp>0);
+    }
   }
 }
 
@@ -2519,7 +2709,7 @@ function useActive(iid){
   if(act.kind==="leadPoison"){
     if(card.leadTurn===G.turnCount){ toast("축적독은 한 턴에 한 번만 걸 수 있어요"); return; }
     if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
-    if(!G.en.field.some(t=>t.passive?.kind!=="immune")){ toast("독을 걸 상대 카드가 없어요"); return; }
+    if(!G.en.field.some(t=>!isImmuneTo(t,"독"))){ toast("독을 걸 상대 카드가 없어요"); return; }
     sel = { hand:null, attacker:null, mode:"lead", srcIid:iid };
     toast("독을 쌓을 상대를 골라요");
     renderBattle();
@@ -2528,9 +2718,8 @@ function useActive(iid){
   if(act.kind==="cleanse"){
     if(card.cleanseTurn===G.turnCount){ toast("소독은 한 턴에 한 번만 쓸 수 있어요"); return; }
     if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
-    if(!G.me.field.some(c=> c.radTurns>0 || (c.leadStacks||0)>0)){ toast("독이나 방사능에 걸린 아군이 없어요"); return; }
     sel = { hand:null, attacker:null, mode:"cleanse", srcIid:iid };
-    toast("독·방사능을 없앨 아군을 골라요");
+    toast("독·방사능을 없애거나 막을 아군을 골라요");
     renderBattle();
     return;
   }
@@ -2567,7 +2756,7 @@ function useActive(iid){
     targets.forEach(t=>{
       t.curHp -= act.value;
       solarGain(t, G.en, act.value);
-      if(t.curHp<=0){ log(`☠️ 상대의 ${elName(t.name)} 파괴됨!`); }
+      if(t.curHp<=0){ log(`☠️ 상대의 ${elName(t.name)} 파괴됨!`); onCardDeath(t, G.en, null); }
     });
     G.en.field = G.en.field.filter(t=>t.curHp>0);
   } else if(act.kind==="stun"){
@@ -2632,13 +2821,12 @@ function cleanseTarget(iid){
   const src = G.me.field.find(c=>c.iid===sel.srcIid);
   const tgt = G.me.field.find(c=>c.iid===iid);
   if(!src||!tgt) return;
-  if(!(tgt.radTurns>0 || (tgt.leadStacks||0)>0)){ toast("그 아군은 독·방사능이 없어요"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
   G.me.energy -= src.active.energy;
-  tgt.radTurns=0; tgt.leadStacks=0; tgt.leadTick=0;
+  applyCleanse(tgt);
   src.cleanseTurn = G.turnCount;
   fx(`🧼 ${elName(tgt.name)} 소독!`, "#38bdf8"); SFX.summon();
-  log(`🧪 ${elName(src.name)} 소독! ${elName(tgt.name)}의 독과 방사능을 없앴어요`);
+  log(`🧪 ${elName(src.name)} 소독! ${elName(tgt.name)}의 독과 방사능을 없애고 2턴 동안 막아요`);
   sel={hand:null,attacker:null,mode:null}; renderBattle();
 }
 function corrodeTarget(iid){
@@ -2771,7 +2959,7 @@ function leadTarget(iid){
   const tgt = G.en.field.find(c=>c.iid===iid);
   if(!src||!tgt) return;
   if(!tauntTargets(G.en.field).map(x=>x.iid).includes(iid)){ toast("자석 방패! 철을 먼저 노려야 해요 🧲"); return; }
-  if(tgt.passive?.kind==="immune"){ toast("금에는 독이 안 통해요"); return; }
+  if(isImmuneTo(tgt,"독")){ toast("면역 상태예요"); return; }
   if(tgt.leadStacks>0){ toast("이미 독이 쌓이고 있는 상대예요"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
   G.me.energy -= src.active.energy;
@@ -2869,17 +3057,18 @@ function applyPoison(atkField, defP, defName, defSide){
   const dmg = 1;
   const hit = [];
   defP.field.forEach(t=>{
-    if(t.passive?.kind==="immune"){ return; } // 금 면역
+    if(isImmuneTo(t,"독")){ return; } // 금·아이오딘 면역
     t.curHp -= dmg; hit.push(t.name);
   });
   const dead = defP.field.filter(t=>t.curHp<=0);
-  dead.forEach(t=>log(`☠️ ${defName}의 ${elName(t.name)}이(가) 중독으로 쓰러졌어요!`));
+  dead.forEach(t=>{ log(`☠️ ${defName}의 ${elName(t.name)}이(가) 중독으로 쓰러졌어요!`); onCardDeath(t, defP, null); });
   defP.field = defP.field.filter(t=>t.curHp>0);
   if(hit.length){ fx(`☠️ 독 데미지!`, "#4ade80"); SFX.poison(); }
 }
 
 // 방사능 오염 데미지: 오염된 카드가 매턴 2씩, 3턴. side의 필드 처리
 function applyRadiation(P, sideName, sideKey){
+  P.field.forEach(t=>{ if((t.immuneTurns||0) > 0) t.immuneTurns -= 1; }); // 아이오딘 면역: 방사능과 같은 기준으로 턴 시작마다 1 감소
   let any=false;
   P.field.forEach(t=>{
     if(t.radTurns > 0){
@@ -3011,7 +3200,7 @@ async function versusEnemyTurn(){
 
     const {c,rc}=pick; G.en.energy-=rc;
     G.en.hand = G.en.hand.filter(x=>x.iid!==c.iid);
-    const bcard = {...c, canAttack:false, hasAttacked:false};
+    const bcard = {...c, canAttack: c.passive?.kind==="charge", hasAttacked:false};
     alive().push(bcard);
     log(`🔶 상대가 ${elName(c.name)}(${c.symbol}) 소환!`);
     onSummon(bcard, G.en);
@@ -3095,7 +3284,7 @@ async function versusEnemyTurn(){
     const tgt = [...sick].sort((a,b)=> ttd(a)-ttd(b) || a.curHp-b.curHp)[0];
     await wait(500); if(!G) return;
     G.en.energy -= io.active.energy; io.cleanseTurn=G.turnCount;
-    tgt.radTurns=0; tgt.leadStacks=0; tgt.leadTick=0;
+    applyCleanse(tgt);
     fx(`🧼 상대 ${elName(io.name)} 소독!`, "#38bdf8"); SFX.summon();
     log(`🧪 상대 ${elName(io.name)} 소독! ${elName(tgt.name)}의 독·방사능을 없앴어요`);
     renderBattle();
@@ -3141,7 +3330,7 @@ async function versusEnemyTurn(){
   for(const pb of alive().filter(c=>c.active?.kind==="leadPoison" && c.canAttack && c.leadTurn!==G.turnCount)){
     if(!G) return;
     if(pb.active.energy>G.en.energy) continue;
-    const allowP = tauntTargets(foes()); const pool = foes().filter(t=> allowP.includes(t) && t.passive?.kind!=="immune" && !(t.leadStacks>0));
+    const allowP = tauntTargets(foes()); const pool = foes().filter(t=> allowP.includes(t) && !isImmuneTo(t,"독") && !(t.leadStacks>0));
     if(!pool.length) continue;
     const tgt = pool.reduce((a,b)=>b.curHp>a.curHp?b:a);
     await wait(500); if(!G) return;
@@ -3247,7 +3436,7 @@ async function versusEnemyTurn(){
     if(es){
       await wait(500); if(!G) return;
       G.en.hand = G.en.hand.filter(c=>c.iid!==es.iid);
-      const nc = {...es, canAttack:false, hasAttacked:false};
+      const nc = {...es, canAttack: es.passive?.kind==="charge", hasAttacked:false};
       alive().push(nc);
       log(`🔶 상대가 ${elName(es.name)}(${es.symbol}) 소환! (수소폭탄으로 무료)`);
       fx(`💣 상대 ${elName(es.name)} 무료 소환!`, "#a3e635");
@@ -3339,7 +3528,7 @@ async function enemyTurn(){
     let pl2 = playable.filter(condMetS); if(!pl2.length) pl2 = playable;
     const {c,rc}=pl2[0]; G.en.energy-=rc;
     G.en.hand = G.en.hand.filter(x=>x.iid!==c.iid);
-    const bcard = {...c, canAttack:false, hasAttacked:false};
+    const bcard = {...c, canAttack: c.passive?.kind==="charge", hasAttacked:false};
     G.en.field.push(bcard);
     log(`🔶 상대가 ${elName(c.name)}(${c.symbol}) 소환!`);
     onSummon(bcard, G.en);
@@ -3452,7 +3641,7 @@ async function enemyTurn(){
     const tgt = [...sick].sort((a,b)=> ttd(a)-ttd(b) || a.curHp-b.curHp)[0];
     await wait(500); if(!G) return;
     G.en.energy -= io.active.energy; io.cleanseTurn=G.turnCount;
-    tgt.radTurns=0; tgt.leadStacks=0; tgt.leadTick=0;
+    applyCleanse(tgt);
     fx(`🧼 상대 ${elName(io.name)} 소독!`, "#38bdf8"); SFX.summon();
     log(`🧪 상대 ${elName(io.name)} 소독! ${elName(tgt.name)}의 독·방사능을 없앴어요`);
     renderBattle();
@@ -3499,7 +3688,7 @@ async function enemyTurn(){
   for(const pb of pbField){
     if(!G) return;
     if(pb.active.energy>G.en.energy) continue;
-    const allowP = tauntTargets(G.me.field); const pool = G.me.field.filter(t=> allowP.includes(t) && t.passive?.kind!=="immune" && !(t.leadStacks>0));
+    const allowP = tauntTargets(G.me.field); const pool = G.me.field.filter(t=> allowP.includes(t) && !isImmuneTo(t,"독") && !(t.leadStacks>0));
     if(!pool.length) continue;
     const tgt = pool.reduce((a,b)=>b.curHp>a.curHp?b:a);
     await wait(500);
@@ -3605,7 +3794,7 @@ async function enemyTurn(){
       await wait(500);
       if(!G) return;
       G.en.hand = G.en.hand.filter(c=>c.iid!==es.iid);
-      const nc = {...es, canAttack:false, hasAttacked:false};
+      const nc = {...es, canAttack: es.passive?.kind==="charge", hasAttacked:false};
       G.en.field.push(nc);
       log(`🔶 상대가 ${elName(es.name)}(${es.symbol}) 소환! (수소폭탄으로 무료)`);
       fx(`💣 상대 ${elName(es.name)} 무료 소환!`, "#a3e635");
@@ -3820,7 +4009,7 @@ function showResult(win){ hideTip();
         ${moleMsg}${unlockMsg}
         <p class="subtitle">보상을 하나 골라요! (하나만 받을 수 있어요)</p>
         <div class="reward-choices">${cards}</div>
-        <div class="ver">v1.0.0</div></div>`;
+        <div class="ver">v1.1.0</div></div>`;
     } else if(win && rewardPool.length === 1){
       // 단일 보상 + 다시/다음
       owned.push(rewardPool[0]); saveGame();
@@ -3831,7 +4020,7 @@ function showResult(win){ hideTip();
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 스테이지 클리어!</h1>
         ${rewardHTML}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.0.0</div></div>`;
+        <div class="ver">v1.1.0</div></div>`;
     } else if(win && firstClear && bossReward){
       // 10스테 보스 첫 클리어 = 우라늄 획득 + 계속 진행
       const uReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
@@ -3841,10 +4030,20 @@ function showResult(win){ hideTip();
         <p class="subtitle">보스를 물리쳤어요! 전설의 원소를 얻었어요! 🎉</p>
         ${uReward}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.0.0</div></div>`;
+        <div class="ver">v1.1.0</div></div>`;
+    } else if(win && firstClear && tiReward){
+      // 20스테 보스 첫 클리어 = 티타늄 획득 + 다음 진행 (최종 엔딩 아님)
+      const tReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">⛓️ 전설의 금속 획득!</div>
+        <div style="display:flex;justify-content:center;">${chipHTML("Ti")}</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">⚡4 · ⚔3 · ❤5 · 🛡️산화막 재생</div></div>`;
+      document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 보스 격파!</h1>
+        <p class="subtitle">20스테이지 보스를 물리치고 전설의 금속을 얻었어요! 🎉</p>
+        ${tReward}${moleMsg}${unlockMsg}
+        ${choiceBtns}
+        <div class="ver">v1.1.0</div></div>`;
     } else if(win && isFinalStage && firstClear){
-      // 최종 보스(마지막 스테이지) 첫 클리어 = 엔딩
-      document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 최종 보스 격파!</h1>
+      // 최종 스테이지 첫 클리어 = 엔딩
+      document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 모든 스테이지 클리어!</h1>
         <p class="subtitle">모든 스테이지를 끝냈어요! 정말 대단해요! 🎉<br>이제 여기서 코인을 벌며 원소를 모아봐요</p>
         ${tiReward ? `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">⛓️ 전설의 금속 획득!</div>
           <div style="display:flex;justify-content:center;">${chipHTML("Ti")}</div>
@@ -3853,13 +4052,13 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로 →</button></div>
-        <div class="ver">v1.0.0</div></div>`;
+        <div class="ver">v1.1.0</div></div>`;
     } else if(win){
       // 보상 없음 (반복 클리어 등) + 다시/다음
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 ${isFinalStage?"승리!":"스테이지 클리어!"}</h1>
         ${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.0.0</div></div>`;
+        <div class="ver">v1.1.0</div></div>`;
     } else {
       // 패배
       document.getElementById("app").innerHTML = `<div id="result"><h1>💀 패배...</h1>
@@ -3867,7 +4066,7 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 도전 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
-        <div class="ver">v1.0.0</div></div>`;
+        <div class="ver">v1.1.0</div></div>`;
     }
     if(coinWarn) toast("10만을 넘기면 핵을 막기 위해 초기화돼요!");
   }, 900);
@@ -3931,12 +4130,12 @@ function doExit(){
 }
 
 // ============================================================
-// PvP (v1.0.0, 뼈대) — 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
+// PvP (v1.1.0, 뼈대) — 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
 // 전송 계층 교체 가능: 지금은 같은 기기 두 탭 테스트용 BroadcastChannel. PeerJS 연결은 다음 단계.
 // 스테이지·봇 모드는 안 건드림 — G.pvp일 때만 이 구조가 동작.
 // ============================================================
 // ============================================================
-// PvP (v1.0.0) — 실시간 대결. 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
+// PvP (v1.1.0) — 실시간 대결. 주인(심판)이 G를 굴리고, 손님은 행동만 보내고 받은 상태만 그림.
 // 연결 계층: PeerJS (신입이2 rps-online.html 재활용 — 방 목록·코드방·핑·끊김·친절한 에러).
 // 스테이지·봇 모드는 안 건드림 — G.pvp일 때만 이 구조가 동작.
 // ============================================================
@@ -4389,7 +4588,7 @@ function pvpApplySummon(side, iid){
   const realCost=costOf(card, P.field); if(realCost>P.energy) return;
   P.energy-=realCost;
   P.hand=P.hand.filter(c=>c.iid!==iid);
-  const nc={...card, canAttack:false, hasAttacked:false};
+  const nc={...card, canAttack: card.passive?.kind==="charge", hasAttacked:false};
   P.field.push(nc);
   if(card.passive?.kind==="hbomb" && realCost===0) P.hbombReady=false;
   SFX.summon(); onSummon(nc, P);
