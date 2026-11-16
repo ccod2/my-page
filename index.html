@@ -1049,7 +1049,7 @@ function showTitle(){ hideTip();
           <button class="btn-ghost" onclick="showSettings()">⚙️ 설정</button>
         </div>
       </div>
-      <div class="ver">v1.1.0</div>
+      <div class="ver">v1.1.1</div>
       <div class="save-status">${saveAvailable
         ? '💾 진행 상황이 자동 저장돼요'
         : '⚠️ 이 환경은 저장이 안 돼요 · 파일로 받으면 저장됩니다'}</div>
@@ -1520,7 +1520,7 @@ function doExchange(key){
 // 새 공지 추가: 아래 배열 '맨 앞'에 { version, date, items:[{title, body}, ...] } 한 칸을 넣으면 됩니다.
 //   - 번호(1. 2. ...)는 자동으로 붙어요.  - body 안에서 \n 으로 줄바꿈해요(2~3줄 권장).
 // ============================================================
-const APP_VERSION = "1.1.0";                              // 게임 버전
+const APP_VERSION = "1.1.1";                              // 게임 버전
 // 버전 비교: a >= b ? 숫자 부분을 나눠서 비교 (1.1.0, 1.10.0 도 올바르게)
 function verGE(a, b){
   const pa=String(a).split('.').map(n=>parseInt(n,10)||0), pb=String(b).split('.').map(n=>parseInt(n,10)||0);
@@ -1533,6 +1533,7 @@ const UPDATES = [
     { title:"신규 원소 2종 추가", body:"구리: 전기 속도\n스트론튬: 불꽃놀이\n자세한 설명은 인게임에서 확인하실 수 있습니다." },
     { title:"신규 스테이지 2개", body:"21~22 스테이지 추가 (20스테이지 클리어 후 도전 가능)" },
     { title:"밸런스 패치", body:"3-1. 붕소: 관통 피해 감소량 증가 (1 → 2)\n3-2. 아이오딘: 소독을 사용하면 해당 카드가 2턴 동안 독과 방사능에 면역이 됩니다." },
+    { title:"뽑기 이펙트 개선", body:"기존 양성자를 모으는 연출에서 카드가 만들어지는 연출로 변경했습니다" },
   ]},
   { version:"1.0.0", date:"2026-11-06", items:[
     { title:"정식 버전이 됐어요!", body:"원소카드게임이 1.0.0 정식 버전이 됐어요. 앞으로도 계속 새로워질 거예요." },
@@ -1993,7 +1994,7 @@ function showTutoStage1Clear(){ hideTip();
       <p class="subtitle">소환하기, 턴 넘기기, 공격하기를 다 해냈어요!</p>
       <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
         <button class="btn-primary" onclick="tutoToRealPhase()">다음으로 →</button></div>
-      <div class="ver">v1.1.0</div></div>`;
+      <div class="ver">v1.1.1</div></div>`;
   }, 900);
 }
 // 2스테이지: 에너지 6, 상대 철·질소 등장
@@ -2119,7 +2120,7 @@ function showBossFakeClear(){ hideTip();
       ${stage===20 ? `<h1>🎉 스테이지 클리어!</h1><div style="margin-top:24px;"><button class="btn-primary" id="p2-lobby-btn" onclick="bossLobbyPoke(event)">로비로 →</button></div>` : `<h1>🏆 보스 격파!</h1>
       <p class="subtitle">해냈어요! 보스를 물리쳤어요! 🎉</p>
       <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>`}
-      <div class="ver">v1.1.0</div></div>`;
+      <div class="ver">v1.1.1</div></div>`;
   }, 900);
 }
 
@@ -4009,7 +4010,7 @@ function showResult(win){ hideTip();
         ${moleMsg}${unlockMsg}
         <p class="subtitle">보상을 하나 골라요! (하나만 받을 수 있어요)</p>
         <div class="reward-choices">${cards}</div>
-        <div class="ver">v1.1.0</div></div>`;
+        <div class="ver">v1.1.1</div></div>`;
     } else if(win && rewardPool.length === 1){
       // 단일 보상 + 다시/다음
       owned.push(rewardPool[0]); saveGame();
@@ -4020,7 +4021,7 @@ function showResult(win){ hideTip();
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 스테이지 클리어!</h1>
         ${rewardHTML}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.0</div></div>`;
+        <div class="ver">v1.1.1</div></div>`;
     } else if(win && firstClear && bossReward){
       // 10스테 보스 첫 클리어 = 우라늄 획득 + 계속 진행
       const uReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
@@ -4030,7 +4031,7 @@ function showResult(win){ hideTip();
         <p class="subtitle">보스를 물리쳤어요! 전설의 원소를 얻었어요! 🎉</p>
         ${uReward}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.0</div></div>`;
+        <div class="ver">v1.1.1</div></div>`;
     } else if(win && firstClear && tiReward){
       // 20스테 보스 첫 클리어 = 티타늄 획득 + 다음 진행 (최종 엔딩 아님)
       const tReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">⛓️ 전설의 금속 획득!</div>
@@ -4040,7 +4041,7 @@ function showResult(win){ hideTip();
         <p class="subtitle">20스테이지 보스를 물리치고 전설의 금속을 얻었어요! 🎉</p>
         ${tReward}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.0</div></div>`;
+        <div class="ver">v1.1.1</div></div>`;
     } else if(win && isFinalStage && firstClear){
       // 최종 스테이지 첫 클리어 = 엔딩
       document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 모든 스테이지 클리어!</h1>
@@ -4052,13 +4053,13 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로 →</button></div>
-        <div class="ver">v1.1.0</div></div>`;
+        <div class="ver">v1.1.1</div></div>`;
     } else if(win){
       // 보상 없음 (반복 클리어 등) + 다시/다음
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 ${isFinalStage?"승리!":"스테이지 클리어!"}</h1>
         ${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.0</div></div>`;
+        <div class="ver">v1.1.1</div></div>`;
     } else {
       // 패배
       document.getElementById("app").innerHTML = `<div id="result"><h1>💀 패배...</h1>
@@ -4066,7 +4067,7 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 도전 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
-        <div class="ver">v1.1.0</div></div>`;
+        <div class="ver">v1.1.1</div></div>`;
     }
     if(coinWarn) toast("10만을 넘기면 핵을 막기 위해 초기화돼요!");
   }, 900);
