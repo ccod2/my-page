@@ -110,6 +110,7 @@
   .card .reflect-badge{ position:absolute; top:-8px; left:-8px; background:#e2e8f0; color:#1e293b; font-size:11px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .card .lead-badge{ position:absolute; top:14px; right:-8px; background:#64748b; color:#fff; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .card .immune-badge{ position:absolute; top:-8px; left:-8px; background:#38bdf8; color:#082f49; font-size:10px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .card .plate-badge{ position:absolute; top:14px; left:-8px; background:#60a5fa; color:#07203f; font-size:11px; font-weight:900; padding:2px 5px; border-radius:10px; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .sr-spark{ position:fixed; left:50%; top:46%; width:9px; height:9px; border-radius:50%; background:#ef4444; box-shadow:0 0 10px #f87171; z-index:240; pointer-events:none; animation:sr-fly .7s ease-out forwards; }
   @keyframes sr-fly{ 0%{ transform:translate(-50%,-50%) scale(1); opacity:1; } 100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.3); opacity:0; } }
   .card .tag{ font-size:8px; font-weight:800; color:#dbe0ea; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.55); padding:2px 7px; border-radius:8px; white-space:nowrap; }
@@ -420,10 +421,10 @@ const ELEMENTS = {
   H:  { symbol:"H",  name:"수소", number:1,  group:"1족",     cost:1, atk:1, hp:2,
         passive:null
         },
-  O:  { symbol:"O",  name:"산소", number:8,  group:"산소족",   cost:2, atk:2, hp:3,
+  O:  { symbol:"O",  name:"산소", number:8,  group:"산소족",   cost:2, atk:1, hp:3,
         passive:{ kind:"allyAtkUp", value:1, short:"연소 지원", label:"내 다른 원소의 공격력을 1 높여줘요" }
         },
-  N:  { symbol:"N",  name:"질소", number:7,  group:"질소족",   cost:2, atk:1, hp:4,
+  N:  { symbol:"N",  name:"질소", number:7,  group:"질소족",   cost:2, atk:1, hp:3,
         passive:{ kind:"shield", value:1, short:"신선 보존", label:"아군 카드가 받는 피해를 1 줄여줘요" }
         },
   C:  { symbol:"C",  name:"탄소", number:6,  group:"탄소족",   cost:3, atk:1, hp:3,
@@ -515,10 +516,14 @@ const ELEMENTS = {
         active:null
         },
   Cu: { symbol:"Cu", name:"구리", number:29, group:"전이금속", cost:2, atk:2, hp:2,
-        passive:{ kind:"charge", short:"전기 속도", label:"소환하자마자 공격할 수 있어요" }
+        passive:{ kind:"charge", short:"순간 전도", label:"소환하자마자 공격할 수 있어요" }
         },
   Sr: { symbol:"Sr", name:"스트론튬", number:38, group:"알칼리토금속", cost:2, atk:1, hp:3,
         passive:{ kind:"deathBurst", value:1, short:"불꽃놀이", label:"쓰러지면 상대 카드 전체에 1 피해를 줘요" }
+        },
+  Zn: { symbol:"Zn", name:"아연", number:30, group:"전이금속", cost:3, atk:1, hp:3,
+        passive:null,
+        active:{ kind:"plate", value:1, energy:3, short:"도금", label:"한 턴에 한 번, 에너지 3으로 다른 아군 하나가 공격과 스킬로 받는 피해를 한 번 막아줘요." }
         },
 };
 // 붕소: ownerField(죽은 카드 주인 필드)에 붕소가 살아 있으면 관통 피해 2 감소 (0 밑으로 안 내려감)
@@ -576,7 +581,7 @@ const DEX = [
   [27,"Co","코발트",4,9,""],
   [28,"Ni","니켈",4,10,""],
   [29,"Cu","구리",4,11,"전선을 타고 전기가 빨리 전해지듯, 소환하자마자 빨리 공격할 수 있어요"],
-  [30,"Zn","아연",4,12,""],
+  [30,"Zn","아연",4,12,"철판에 입혀서 녹을 막아 주는 원소라, 아군에게 도금을 입혀 주면 피해를 한 번 막아줘요"],
   [31,"Ga","갈륨",4,13,""],
   [32,"Ge","저마늄",4,14,""],
   [33,"As","비소",4,15,""],
@@ -692,7 +697,7 @@ let updatesPopupShown = false;  // 이번 접속에서 팝업을 띄웠는지 (�
 // ============================================================
 // 원소 6종 + 에이스를 숫자로 바꿔 뒤섞은 뒤 문자로 → 알아볼 수 없는 코드
 // 원소 기호를 고정 순서 배열의 인덱스로 (이 배열 순서만 유지하면 코드 안정)
-const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U","Ag","Pb","Es","Ar","B","I","F","Nd","Ir","Ti","Si"];
+const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U","Ag","Pb","Es","Ar","B","I","F","Nd","Ir","Ti","Si","Zn"];
 // 코드에 쓸 문자 (헷갈리는 0 O 1 I L 뺌)
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 30자
 const CODE_SCRAMBLE = 7; // 뒤섞기용 값
@@ -746,8 +751,8 @@ function decodeDeck(code){
 }
 const GACHA_COST = 500;
 const CRYSTAL_FOR_ELEMENT = 10;
-const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500, 11:1100, 12:1200, 13:1300, 14:1400, 15:1500, 16:1500, 17:1600, 18:1600, 19:1700, 20:2000, 21:1600, 22:1600 };  // 첫 클리어 코인 (우상향)
-const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500, 11:350, 12:400, 13:450, 14:450, 15:500, 16:500, 17:550, 18:550, 19:550, 20:650, 21:550, 22:550 }; // 반복 (첫의 1/3, 50단위)
+const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500, 11:1100, 12:1200, 13:1300, 14:1400, 15:1500, 16:1500, 17:1600, 18:1600, 19:1700, 20:2000, 21:1600, 22:1600, 23:1600 };  // 첫 클리어 코인 (우상향)
+const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500, 11:350, 12:400, 13:450, 14:450, 15:500, 16:500, 17:550, 18:550, 19:550, 20:650, 21:550, 22:550, 23:550 }; // 반복 (첫의 1/3, 50단위)
 let reward = null, G = null, logs = [], busy = false;
 let sel = { hand:null, attacker:null, mode:null }; // mode: 'attack' | 'active'
 let stage = 1;        // '가': 지금 하는 판 (전투 시작이 따라감, 맵에서 고르면 바뀜)
@@ -780,8 +785,9 @@ const STAGES = {
   20: { hp:35, deck:["Au","Hg","Al","Pb","Ag","Mg"],      miss:0.02, reward:null,  label:"스테이지 20 · 보스", boss:true },
   21: { hp:35, deck:["Cu","N","O","Fe","C","Si"],         miss:0.08, reward:null,  label:"스테이지 21" },
   22: { hp:35, deck:["Sr","Ag","Ir","Si","Al","Cl"],      miss:0.08, reward:null,  label:"스테이지 22" },
+  23: { hp:35, deck:["Zn","N","Fe","P","He","Li"],         miss:0.08, reward:null,  label:"스테이지 23" },
 };
-const MAX_STAGE = 22;
+const MAX_STAGE = 23;
 // 보스 2페이즈 설정
 const BOSS_PHASE2 = { hp:30, deck:["U","Hg","P","Mg","Cl","Au"], miss:0.13 };
 const BOSS_PHASE2_MAP = { 10: BOSS_PHASE2, 20: { hp:35, deck:["Ti","K","P","Ar","N","O"], miss:0.02 } };
@@ -943,6 +949,16 @@ function effAtk(card, field){
 }
 // 산화막 재생(티타늄 등): 턴이 끝날 때마다 체력 회복 (최대치까지)
 function solarGain(card, ownerP, dmg){ if(card && card.passive && card.passive.kind==="solar" && dmg>0 && ownerP){ ownerP.solarPending=(ownerP.solarPending||0)+dmg; } }
+// 도금(아연): 직접 피해 1회를 0으로 막고 도금이 벗겨짐. 반환=실제 적용 피해(0이면 막음). 독·축적독·방사능 틱에는 호출하지 않음
+function platingReduce(card, dmg){
+  if(dmg>0 && card && card.plated){
+    card.plated = false;
+    log(`🛡️ 도금! ${elName(card.name)}이(가) 피해를 한 번 막았어요`);
+    fx(`🛡️ ${elName(card.name)} 도금 방어!`, "#60a5fa");
+    return 0;
+  }
+  return dmg;
+}
 function tickRegen(){
   if(!G) return;
   [G.me, G.en].forEach(P=>P.field.forEach(c=>{
@@ -1049,7 +1065,7 @@ function showTitle(){ hideTip();
           <button class="btn-ghost" onclick="showSettings()">⚙️ 설정</button>
         </div>
       </div>
-      <div class="ver">v1.1.1</div>
+      <div class="ver">v${APP_VERSION}</div>
       <div class="save-status">${saveAvailable
         ? '💾 진행 상황이 자동 저장돼요'
         : '⚠️ 이 환경은 저장이 안 돼요 · 파일로 받으면 저장됩니다'}</div>
@@ -1520,7 +1536,7 @@ function doExchange(key){
 // 새 공지 추가: 아래 배열 '맨 앞'에 { version, date, items:[{title, body}, ...] } 한 칸을 넣으면 됩니다.
 //   - 번호(1. 2. ...)는 자동으로 붙어요.  - body 안에서 \n 으로 줄바꿈해요(2~3줄 권장).
 // ============================================================
-const APP_VERSION = "1.1.1";                              // 게임 버전
+const APP_VERSION = "1.2.0";                              // 게임 버전
 // 버전 비교: a >= b ? 숫자 부분을 나눠서 비교 (1.1.0, 1.10.0 도 올바르게)
 function verGE(a, b){
   const pa=String(a).split('.').map(n=>parseInt(n,10)||0), pb=String(b).split('.').map(n=>parseInt(n,10)||0);
@@ -1529,8 +1545,13 @@ function verGE(a, b){
 }
 const UPDATES_ENABLED = verGE(APP_VERSION, "1.0.0");      // '업데이트 소식'은 1.0.0부터 표시
 const UPDATES = [
-  { version:"1.1.1", date:"2026-11-13", items:[
-    { title:"신규 원소 2종 추가", body:"구리: 전기 속도\n스트론튬: 불꽃놀이\n자세한 설명은 인게임에서 확인하실 수 있습니다." },
+  { version:"1.2.0", date:"2026-11-20", items:[
+    { title:"신규 원소 1종 추가", body:"아연: 도금\n자세한 설명은 인게임에서 확인하실 수 있습니다." },
+    { title:"신규 스테이지 1개", body:"23 스테이지 추가 (22스테이지 클리어 후 도전 가능)" },
+    { title:"밸런스 패치", body:"3-1. 질소: 체력 감소 (4 → 3)\n3-2. 산소: 공격력 감소 (2 → 1)" },
+  ]},
+  { version:"1.1.0", date:"2026-11-13", items:[
+    { title:"신규 원소 2종 추가", body:"구리: 순간 전도\n스트론튬: 불꽃놀이\n자세한 설명은 인게임에서 확인하실 수 있습니다." },
     { title:"신규 스테이지 2개", body:"21~22 스테이지 추가 (20스테이지 클리어 후 도전 가능)" },
     { title:"밸런스 패치", body:"3-1. 붕소: 관통 피해 감소량 증가 (1 → 2)\n3-2. 아이오딘: 소독을 사용하면 해당 카드가 2턴 동안 독과 방사능에 면역이 됩니다." },
     { title:"뽑기 이펙트 개선", body:"기존 양성자를 모으는 연출에서 카드가 만들어지는 연출로 변경했습니다" },
@@ -1994,7 +2015,7 @@ function showTutoStage1Clear(){ hideTip();
       <p class="subtitle">소환하기, 턴 넘기기, 공격하기를 다 해냈어요!</p>
       <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
         <button class="btn-primary" onclick="tutoToRealPhase()">다음으로 →</button></div>
-      <div class="ver">v1.1.1</div></div>`;
+      <div class="ver">v${APP_VERSION}</div></div>`;
   }, 900);
 }
 // 2스테이지: 에너지 6, 상대 철·질소 등장
@@ -2107,7 +2128,7 @@ function startBattle(){
   logs = []; sel={hand:null,attacker:null,mode:null}; busy=false;
   log(`⚔️ ${st.label} 시작! 당신의 턴입니다.`);
   renderBattle();
-  fx(st.boss ? "☢️ 보스 등장!" : `${st.label}`, st.boss ? "#a3e635" : "#3b82f6");
+  fx(st.boss ? `${stage===10?'☢️':'⛓️'} 보스 등장!` : `${st.label}`, st.boss ? "#a3e635" : "#3b82f6");
 }
 
 // 보스 1페이즈 승리 → 가짜 클리어 화면 (로비 버튼만, 누르면 2페이즈)
@@ -2120,7 +2141,7 @@ function showBossFakeClear(){ hideTip();
       ${stage===20 ? `<h1>🎉 스테이지 클리어!</h1><div style="margin-top:24px;"><button class="btn-primary" id="p2-lobby-btn" onclick="bossLobbyPoke(event)">로비로 →</button></div>` : `<h1>🏆 보스 격파!</h1>
       <p class="subtitle">해냈어요! 보스를 물리쳤어요! 🎉</p>
       <div style="margin-top:24px;"><button class="btn-primary" onclick="startBossPhase2()">로비로 가기 →</button></div>`}
-      <div class="ver">v1.1.1</div></div>`;
+      <div class="ver">v${APP_VERSION}</div></div>`;
   }, 900);
 }
 
@@ -2249,6 +2270,11 @@ function cardHTML(c, ctx, field){
   if(ctx!=="hand" && (c.immuneTurns||0) > 0){
     imm = `<div class="immune-badge">🛡️${c.immuneTurns}</div>`;
   }
+  // 도금(아연) 표시 — 면역·버티기 등과 위치가 겹치지 않게 왼쪽 아래
+  let plate = "";
+  if(ctx!=="hand" && c.plated){
+    plate = `<div class="plate-badge">🔷</div>`;
+  }
   let cls="card", onclick="", cost="";
 
   if(ctx==="hand"){
@@ -2266,6 +2292,8 @@ function cardHTML(c, ctx, field){
       cls+=" targetable-heal"; onclick=`onclick="healTarget(${c.iid})"`;
     } else if(sel.mode==="cleanse"){
       cls+=" targetable-heal"; onclick=`onclick="cleanseTarget(${c.iid})"`;
+    } else if(sel.mode==="plate" && c.iid!==sel.srcIid && !c.plated){
+      cls+=" targetable-heal"; onclick=`onclick="plateTarget(${c.iid})"`;
     } else {
       const ready = G.turn==="me" && !busy && c.canAttack && !c.hasAttacked;
       if(ready) cls+=" ready"; if(sel.attacker===c.iid) cls+=" selected";
@@ -2319,7 +2347,7 @@ function cardHTML(c, ctx, field){
   }
 
   return `<div class="${cls}" ${onclick} ${hover}>
-    ${cost}${taunt}${battery}${lastStand}${rad}${reflect}${lead}${imm}
+    ${cost}${taunt}${battery}${lastStand}${rad}${reflect}${lead}${imm}${plate}
     <div class="band" style="background:${g.band}"></div>
     <div class="inner">
       <div class="topfill" style="background:linear-gradient(180deg, ${g.band}, transparent)"></div>
@@ -2407,9 +2435,9 @@ function renderBattle(){
       } else {
         activeBtn = `<button class="btn-active" onclick="useActive(${sc.iid})">☠️ 축적독 (⚡${sc.active.energy})</button>`;
       }
-    } else if(sc && sc.active && (sc.active.kind==="cleanse"||sc.active.kind==="corrode"||sc.active.kind==="focus") && sc.canAttack){
-      const tkey = sc.active.kind==="cleanse"?"cleanseTurn":(sc.active.kind==="corrode"?"corrodeTurn":"focusTurn");
-      const icoN = sc.active.kind==="cleanse"?"🧼":(sc.active.kind==="corrode"?"🧪":"💠");
+    } else if(sc && sc.active && (sc.active.kind==="cleanse"||sc.active.kind==="corrode"||sc.active.kind==="focus"||sc.active.kind==="plate") && sc.canAttack){
+      const tkey = sc.active.kind==="cleanse"?"cleanseTurn":(sc.active.kind==="corrode"?"corrodeTurn":(sc.active.kind==="focus"?"focusTurn":"plateTurn"));
+      const icoN = sc.active.kind==="cleanse"?"🧼":(sc.active.kind==="corrode"?"🧪":(sc.active.kind==="focus"?"💠":"🛡️"));
       if(sc[tkey]===G.turnCount){
         activeBtn = `<button class="btn-disabled" disabled>${icoN} 이번 턴엔 썼어요</button>`;
       } else {
@@ -2427,7 +2455,7 @@ function renderBattle(){
   }
   // 스킬 대상 고르는 중(반사·축적독·회복·발화)이면 취소 버튼
   let cancelBtn = "";
-  if(myTurn && (sel.mode==="reflect"||sel.mode==="lead"||sel.mode==="heal"||sel.mode==="blast"||sel.mode==="cleanse"||sel.mode==="corrode"||sel.mode==="focus")){
+  if(myTurn && (sel.mode==="reflect"||sel.mode==="lead"||sel.mode==="heal"||sel.mode==="blast"||sel.mode==="cleanse"||sel.mode==="corrode"||sel.mode==="focus"||sel.mode==="plate")){
     cancelBtn = `<button class="btn-ghost" onclick="cancelSkill()">취소</button>`;
   }
 
@@ -2554,8 +2582,9 @@ function onSummon(card, owner){
       fx(`☄️ ${elName(card.name)} 운석!`, "#f97316"); SFX.explode();
       log(`☄️ ${elName(card.name)} 운석 낙하! ${foeName} 전체에 ${card.passive.value} 피해`);
       foe.field.forEach(t=>{
-        t.curHp -= card.passive.value;
-        solarGain(t, foe, card.passive.value);
+        const _pd = platingReduce(t, card.passive.value);
+        t.curHp -= _pd;
+        solarGain(t, foe, _pd);
         if(t.curHp<=0){
           if(t.passive?.kind==="lastStand" && !t.lastStandUsed){ t.lastStandUsed=true; t.curHp=1; }
           else { log(`☠️ ${foeName}의 ${elName(t.name)} 파괴됨!`); onCardDeath(t, foe, null); }
@@ -2599,6 +2628,13 @@ function attackFace(){
   if(checkEnd())return;
 }
 function dealToUnit(aCard, tCard, atkField, defP, defName, defSide){
+  // 도금: 직접 공격 1회 완전 방어 (질소 감소·헬륨 버티기·관통·우라늄 오염 모두 미발생)
+  if(tCard && tCard.plated){
+    tCard.plated = false;
+    log(`🛡️ 도금! ${elName(tCard.name)}이(가) 공격을 한 번 막았어요`);
+    fx(`🛡️ ${elName(tCard.name)} 도금 방어!`, "#60a5fa"); SFX.hit();
+    return;
+  }
   let dmg = effAtk(aCard, atkField);
   const shield = shieldFor(tCard, defP.field);
   const realDmg = Math.max(0, dmg - shield);
@@ -2679,7 +2715,7 @@ function onCardDeath(card, owner, killer){
     if(live.length){
       srBurstFx(); fx(`🎆 불꽃놀이!`, "#ef4444");
       log(`🎆 ${elName(card.name)} 불꽃놀이! 상대 카드 전체에 ${card.passive.value} 피해`);
-      live.forEach(t=>{ t.curHp -= card.passive.value; solarGain(t, foe, card.passive.value); });
+      live.forEach(t=>{ const _pd = platingReduce(t, card.passive.value); t.curHp -= _pd; solarGain(t, foe, _pd); });
       const dead = foe.field.filter(t=>!t._dead && t.curHp<=0);
       dead.forEach(t=>{
         if(t.passive?.kind==="lastStand" && !t.lastStandUsed){ t.lastStandUsed=true; t.curHp=1; }
@@ -2724,6 +2760,15 @@ function useActive(iid){
     renderBattle();
     return;
   }
+  if(act.kind==="plate"){
+    if(card.plateTurn===G.turnCount){ toast("도금은 한 턴에 한 번만 쓸 수 있어요"); return; }
+    if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
+    if(!G.me.field.some(c=> c.iid!==card.iid && !c.plated)){ toast("도금해 줄 다른 아군이 없어요"); return; }
+    sel = { hand:null, attacker:null, mode:"plate", srcIid:iid };
+    toast("도금해 줄 아군을 골라요");
+    renderBattle();
+    return;
+  }
   if(act.kind==="corrode"){
     if(card.corrodeTurn===G.turnCount){ toast("부식은 한 턴에 한 번만 쓸 수 있어요"); return; }
     if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
@@ -2755,8 +2800,9 @@ function useActive(iid){
     // 상대 전체에 데미지 (관통 없음, 단순 광역)
     const targets = [...G.en.field];
     targets.forEach(t=>{
-      t.curHp -= act.value;
-      solarGain(t, G.en, act.value);
+      const _pd = platingReduce(t, act.value);
+      t.curHp -= _pd;
+      solarGain(t, G.en, _pd);
       if(t.curHp<=0){ log(`☠️ 상대의 ${elName(t.name)} 파괴됨!`); onCardDeath(t, G.en, null); }
     });
     G.en.field = G.en.field.filter(t=>t.curHp>0);
@@ -2830,6 +2876,21 @@ function cleanseTarget(iid){
   log(`🧪 ${elName(src.name)} 소독! ${elName(tgt.name)}의 독과 방사능을 없애고 2턴 동안 막아요`);
   sel={hand:null,attacker:null,mode:null}; renderBattle();
 }
+function plateTarget(iid){
+  if(G.turn!=="me"||busy||sel.mode!=="plate") return;
+  const src = G.me.field.find(c=>c.iid===sel.srcIid);
+  const tgt = G.me.field.find(c=>c.iid===iid);
+  if(!src||!tgt) return;
+  if(tgt.iid===src.iid){ toast("도금은 다른 아군에게만 쓸 수 있어요"); return; }
+  if(tgt.plated){ toast("이미 도금돼 있어요"); return; }
+  if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  G.me.energy -= src.active.energy;
+  tgt.plated = true;
+  src.plateTurn = G.turnCount;
+  fx(`🛡️ ${elName(tgt.name)} 도금!`, "#60a5fa"); SFX.summon();
+  log(`🛡️ ${elName(src.name)} 도금! ${elName(tgt.name)}이(가) 피해를 한 번 막을 수 있어요`);
+  sel={hand:null,attacker:null,mode:null}; renderBattle();
+}
 function corrodeTarget(iid){
   if(G.turn!=="me"||busy||sel.mode!=="corrode") return;
   const src = G.me.field.find(c=>c.iid===sel.srcIid);
@@ -2861,8 +2922,8 @@ function focusTarget(iid){
   src.focusTurn = G.turnCount;
   fx(`💠 ${elName(src.name)} 응집 ${dmg}!`, "#60a5fa"); SFX.explode();
   log(`💠 ${elName(src.name)} 응집! 아군의 공격력을 모아 ${elName(tgt.name)}에게 ${dmg} 피해`);
-  const before = tgt.curHp; tgt.curHp -= dmg;
-  solarGain(tgt, G.en, dmg);
+  const before = tgt.curHp; const _pd = platingReduce(tgt, dmg); tgt.curHp -= _pd;
+  solarGain(tgt, G.en, _pd);
   if(tgt.curHp<=0){
     if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){ tgt.lastStandUsed=true; tgt.curHp=1; log(`✨ 불활성! ${elName(tgt.name)}이(가) 버텼어요`); }
     else {
@@ -2895,8 +2956,8 @@ function doReflect(src, tgt, defP, defName, defSide){
   if(tgt){
     fx(`🪞 ${elName(src.name)} 반사 ${dmg}!`, "#e2e8f0");
     log(`🪞 ${defName==="상대"?"":"상대 "}${elName(src.name)} 반사! ${elName(tgt.name)}에게 ${dmg} 피해`);
-    const before = tgt.curHp; tgt.curHp -= dmg;
-    solarGain(tgt, defP, dmg);
+    const before = tgt.curHp; const _pd = platingReduce(tgt, dmg); tgt.curHp -= _pd;
+    solarGain(tgt, defP, _pd);
     if(tgt.curHp<=0){
       if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){
         tgt.lastStandUsed=true; tgt.curHp=1;
@@ -2930,7 +2991,7 @@ function reflectTarget(iid){
 }
 // 스킬 대상 고르기 취소 (반사·축적독·회복·발화). 에너지는 대상 고를 때 쓰이므로 환불 불필요
 function cancelSkill(){
-  if(!(sel.mode==="reflect"||sel.mode==="lead"||sel.mode==="heal"||sel.mode==="blast"||sel.mode==="cleanse"||sel.mode==="corrode"||sel.mode==="focus")) return;
+  if(!(sel.mode==="reflect"||sel.mode==="lead"||sel.mode==="heal"||sel.mode==="blast"||sel.mode==="cleanse"||sel.mode==="corrode"||sel.mode==="focus"||sel.mode==="plate")) return;
   sel = { hand:null, attacker:null, mode:null };
   toast("스킬을 취소했어요");
   renderBattle();
@@ -3012,8 +3073,8 @@ function blastTarget(iid){
   const dmg = src.active.value;
   fx(`🔥 ${elName(src.name)} 발화!`, "#fb923c"); SFX.explode();
   log(`🔥 ${elName(src.name)} 발화! ${elName(tgt.name)}에게 ${dmg} 피해`);
-  const before = tgt.curHp; tgt.curHp -= dmg;
-  solarGain(tgt, G.en, dmg);
+  const before = tgt.curHp; const _pd = platingReduce(tgt, dmg); tgt.curHp -= _pd;
+  solarGain(tgt, G.en, _pd);
   if(tgt.curHp<=0){
     if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){
       tgt.lastStandUsed=true; tgt.curHp=1;
@@ -3217,7 +3278,7 @@ async function versusEnemyTurn(){
       G.en.energy -= na.active.energy; na.usedActive=true;
       fx(`💥 상대 ${elName(na.name)} 물 폭발!`, "#fb923c"); SFX.explode();
       log(`💥 상대 ${elName(na.name)} 물 폭발! 당신 전체에 ${na.active.value} 데미지`);
-      foes().forEach(t=>{ t.curHp -= na.active.value; solarGain(t, G.me, na.active.value); if(t.curHp<=0) log(`☠️ 당신의 ${elName(t.name)} 파괴됨!`); });
+      foes().forEach(t=>{ const _pd = platingReduce(t, na.active.value); t.curHp -= _pd; solarGain(t, G.me, _pd); if(t.curHp<=0) log(`☠️ 당신의 ${elName(t.name)} 파괴됨!`); });
       G.me.field = foes().filter(t=>t.curHp>0);
       renderBattle(); if(checkEnd()) return;
     }
@@ -3257,8 +3318,8 @@ async function versusEnemyTurn(){
       G.en.energy -= p.active.energy; p.usedActive=true;
       fx(`🔥 상대 ${elName(p.name)} 발화!`, "#fb923c"); SFX.explode();
       log(`🔥 상대 ${elName(p.name)} 발화! ${elName(topHp.name)}에게 ${dmg} 피해`);
-      const before=topHp.curHp; topHp.curHp-=dmg;
-      solarGain(topHp, G.me, dmg);
+      const before=topHp.curHp; const _pd = platingReduce(topHp, dmg); topHp.curHp-=_pd;
+      solarGain(topHp, G.me, _pd);
       if(topHp.curHp<=0){
         if(topHp.passive?.kind==="lastStand" && !topHp.lastStandUsed){ topHp.lastStandUsed=true; topHp.curHp=1; }
         else { onCardDeath(topHp,G.me,p); G.me.field=foes().filter(x=>x.iid!==topHp.iid); const of=boronReduce(dmg-before,G.me.field); if(of>0)G.me.hp-=of; }
@@ -3319,8 +3380,8 @@ async function versusEnemyTurn(){
     cons.forEach(c=>{ c.hasAttacked=true; });
     fx(`💠 상대 ${elName(nd.name)} 응집 ${dmg}!`, "#60a5fa"); SFX.explode();
     log(`💠 상대 ${elName(nd.name)} 응집! 아군의 공격력을 모아 ${elName(tgt.name)}에게 ${dmg} 피해`);
-    const before=tgt.curHp; tgt.curHp-=dmg;
-    solarGain(tgt, G.me, dmg);
+    const before=tgt.curHp; const _pd = platingReduce(tgt, dmg); tgt.curHp-=_pd;
+    solarGain(tgt, G.me, _pd);
     if(tgt.curHp<=0){
       if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){ tgt.lastStandUsed=true; tgt.curHp=1; }
       else { onCardDeath(tgt,G.me,nd); G.me.field=foes().filter(x=>x.iid!==tgt.iid); const of=boronReduce(dmg-before,G.me.field); if(of>0){G.me.hp-=of; flashHp("me");} }
@@ -3378,6 +3439,21 @@ async function versusEnemyTurn(){
     renderBattle();
   }
 
+  // --- 아연(도금): 에너지 3 이상 + 도금해 줄 다른 아군 있으면 사용. 대상=도금 없는 아군 중 공격력 최고(실수율이면 무작위). 임시 규칙 ---
+  for(const zn of alive().filter(c=>c.active?.kind==="plate" && c.canAttack && c.plateTurn!==G.turnCount)){
+    if(!G) return;
+    if(zn.active.energy>G.en.energy) continue;
+    const cand = alive().filter(c=> c.iid!==zn.iid && !c.plated);
+    if(!cand.length) continue;
+    let tgt;
+    if(Math.random() < (G.botMiss||0)) tgt = cand[(Math.random()*cand.length)|0];
+    else tgt = [...cand].sort((a,b)=> effAtk(b,alive())-effAtk(a,alive()))[0];
+    await wait(500); if(!G) return;
+    G.en.energy -= zn.active.energy; zn.plateTurn=G.turnCount; tgt.plated=true;
+    fx(`🛡️ 상대 ${elName(tgt.name)} 도금!`, "#60a5fa"); SFX.summon();
+    log(`🛡️ 상대 ${elName(zn.name)} 도금! ${elName(tgt.name)}이(가) 피해를 한 번 막을 수 있어요`);
+    renderBattle();
+  }
   // --- 공격 ---
   const attackers = alive().filter(c=>c.canAttack && !c.hasAttacked);
   for(const aCard of attackers){
@@ -3548,7 +3624,7 @@ async function enemyTurn(){
       G.en.energy -= na.active.energy; na.usedActive=true;
       fx(`💥 상대 ${elName(na.name)} 물 폭발!`, "#fb923c"); SFX.explode();
       log(`💥 상대 ${elName(na.name)} 물 폭발! 당신 전체에 ${na.active.value} 데미지`);
-      G.me.field.forEach(t=>{ t.curHp -= na.active.value; solarGain(t, G.me, na.active.value); if(t.curHp<=0) log(`☠️ 당신의 ${elName(t.name)} 파괴됨!`); });
+      G.me.field.forEach(t=>{ const _pd = platingReduce(t, na.active.value); t.curHp -= _pd; solarGain(t, G.me, _pd); if(t.curHp<=0) log(`☠️ 당신의 ${elName(t.name)} 파괴됨!`); });
       G.me.field = G.me.field.filter(t=>t.curHp>0);
       renderBattle();
       if(checkEnd()) return;
@@ -3613,8 +3689,8 @@ async function enemyTurn(){
         G.en.energy -= p.active.energy; p.usedActive=true;
         fx(`🔥 상대 ${elName(p.name)} 발화!`, "#fb923c"); SFX.explode();
         log(`🔥 상대 ${elName(p.name)} 발화! ${elName(tgt.name)}에게 ${dmg} 피해`);
-        const before=tgt.curHp; tgt.curHp-=dmg;
-        solarGain(tgt, G.me, dmg);
+        const before=tgt.curHp; const _pd = platingReduce(tgt, dmg); tgt.curHp-=_pd;
+        solarGain(tgt, G.me, _pd);
         if(tgt.curHp<=0){
           if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){ tgt.lastStandUsed=true; tgt.curHp=1; }
           else { onCardDeath(tgt,G.me,p); G.me.field=G.me.field.filter(x=>x.iid!==tgt.iid); const of=boronReduce(dmg-before,G.me.field); if(of>0)G.me.hp-=of; }
@@ -3676,8 +3752,8 @@ async function enemyTurn(){
     cons.forEach(c=>{ c.hasAttacked=true; });
     fx(`💠 상대 ${elName(nd.name)} 응집 ${dmg}!`, "#60a5fa"); SFX.explode();
     log(`💠 상대 ${elName(nd.name)} 응집! 아군의 공격력을 모아 ${elName(tgt.name)}에게 ${dmg} 피해`);
-    const before=tgt.curHp; tgt.curHp-=dmg;
-    solarGain(tgt, G.me, dmg);
+    const before=tgt.curHp; const _pd = platingReduce(tgt, dmg); tgt.curHp-=_pd;
+    solarGain(tgt, G.me, _pd);
     if(tgt.curHp<=0){
       if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){ tgt.lastStandUsed=true; tgt.curHp=1; }
       else { onCardDeath(tgt,G.me,nd); G.me.field=G.me.field.filter(x=>x.iid!==tgt.iid); const of=boronReduce(dmg-before,G.me.field); if(of>0){G.me.hp-=of; flashHp("me");} }
@@ -3742,6 +3818,21 @@ async function enemyTurn(){
     }
   }
 
+  // --- 아연(도금): 에너지 3 이상 + 도금해 줄 다른 아군 있으면 사용. 대상=도금 없는 아군 중 공격력 최고(실수율이면 무작위). 임시 규칙 ---
+  for(const zn of G.en.field.filter(c=>c.active?.kind==="plate" && c.canAttack && c.plateTurn!==G.turnCount)){
+    if(!G) return;
+    if(zn.active.energy>G.en.energy) continue;
+    const cand = G.en.field.filter(c=> c.iid!==zn.iid && !c.plated);
+    if(!cand.length) continue;
+    let tgt;
+    if(Math.random() < (G.botMiss||0)) tgt = cand[(Math.random()*cand.length)|0];
+    else tgt = [...cand].sort((a,b)=> effAtk(b,G.en.field)-effAtk(a,G.en.field))[0];
+    await wait(500); if(!G) return;
+    G.en.energy -= zn.active.energy; zn.plateTurn=G.turnCount; tgt.plated=true;
+    fx(`🛡️ 상대 ${elName(tgt.name)} 도금!`, "#60a5fa"); SFX.summon();
+    log(`🛡️ 상대 ${elName(zn.name)} 도금! ${elName(tgt.name)}이(가) 피해를 한 번 막을 수 있어요`);
+    renderBattle();
+  }
   const attackers = G.en.field.filter(c=>c.canAttack && !c.hasAttacked);
   for(const aCard of attackers){
     if(!G) return; await wait(550);
@@ -4010,7 +4101,7 @@ function showResult(win){ hideTip();
         ${moleMsg}${unlockMsg}
         <p class="subtitle">보상을 하나 골라요! (하나만 받을 수 있어요)</p>
         <div class="reward-choices">${cards}</div>
-        <div class="ver">v1.1.1</div></div>`;
+        <div class="ver">v${APP_VERSION}</div></div>`;
     } else if(win && rewardPool.length === 1){
       // 단일 보상 + 다시/다음
       owned.push(rewardPool[0]); saveGame();
@@ -4021,7 +4112,7 @@ function showResult(win){ hideTip();
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 스테이지 클리어!</h1>
         ${rewardHTML}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.1</div></div>`;
+        <div class="ver">v${APP_VERSION}</div></div>`;
     } else if(win && firstClear && bossReward){
       // 10스테 보스 첫 클리어 = 우라늄 획득 + 계속 진행
       const uReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">☢️ 전설의 원소 획득!</div>
@@ -4031,7 +4122,7 @@ function showResult(win){ hideTip();
         <p class="subtitle">보스를 물리쳤어요! 전설의 원소를 얻었어요! 🎉</p>
         ${uReward}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.1</div></div>`;
+        <div class="ver">v${APP_VERSION}</div></div>`;
     } else if(win && firstClear && tiReward){
       // 20스테 보스 첫 클리어 = 티타늄 획득 + 다음 진행 (최종 엔딩 아님)
       const tReward = `<div class="reward-box"><div style="color:var(--ink-soft);margin-bottom:10px;">⛓️ 전설의 금속 획득!</div>
@@ -4041,7 +4132,7 @@ function showResult(win){ hideTip();
         <p class="subtitle">20스테이지 보스를 물리치고 전설의 금속을 얻었어요! 🎉</p>
         ${tReward}${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.1</div></div>`;
+        <div class="ver">v${APP_VERSION}</div></div>`;
     } else if(win && isFinalStage && firstClear){
       // 최종 스테이지 첫 클리어 = 엔딩
       document.getElementById("app").innerHTML = `<div id="result"><h1>🏆 모든 스테이지 클리어!</h1>
@@ -4053,13 +4144,13 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 하기 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로 →</button></div>
-        <div class="ver">v1.1.1</div></div>`;
+        <div class="ver">v${APP_VERSION}</div></div>`;
     } else if(win){
       // 보상 없음 (반복 클리어 등) + 다시/다음
       document.getElementById("app").innerHTML = `<div id="result"><h1>🎉 ${isFinalStage?"승리!":"스테이지 클리어!"}</h1>
         ${moleMsg}${unlockMsg}
         ${choiceBtns}
-        <div class="ver">v1.1.1</div></div>`;
+        <div class="ver">v${APP_VERSION}</div></div>`;
     } else {
       // 패배
       document.getElementById("app").innerHTML = `<div id="result"><h1>💀 패배...</h1>
@@ -4067,7 +4158,7 @@ function showResult(win){ hideTip();
         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
           <button class="btn-primary" onclick="startBattle()">다시 도전 🔄</button>
           <button class="btn-ghost" onclick="showTitle()">로비로</button></div>
-        <div class="ver">v1.1.1</div></div>`;
+        <div class="ver">v${APP_VERSION}</div></div>`;
     }
     if(coinWarn) toast("10만을 넘기면 핵을 막기 위해 초기화돼요!");
   }, 900);
