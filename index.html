@@ -525,6 +525,9 @@ const ELEMENTS = {
         passive:null,
         active:{ kind:"plate", value:1, energy:3, short:"도금", label:"한 턴에 한 번, 에너지 3으로 다른 아군 하나가 공격과 스킬로 받는 피해를 한 번 막아줘요." }
         },
+  Cs: { symbol:"Cs", name:"세슘", number:55, group:"알칼리금속", cost:3, atk:1, hp:3,
+        passive:{ kind:"clock", value:1, short:"원자시계", label:"턴이 끝날 때마다 스스로 공격력이 1씩 올라요. (최대 3번)" }
+        },
 };
 // 붕소: ownerField(죽은 카드 주인 필드)에 붕소가 살아 있으면 관통 피해 2 감소 (0 밑으로 안 내려감)
 function boronReduce(overflow, ownerField){
@@ -606,7 +609,7 @@ const DEX = [
   [52,"Te","텔루륨",5,16,""],
   [53,"I","아이오딘",5,17,"상처를 소독하는 약이자 방사능에 대비하는 약으로 쓰여서, 아군의 독과 방사능을 씻어내고 한동안 막아 줘요"],
   [54,"Xe","제논",5,18,""],
-  [55,"Cs","세슘",6,1,""],
+  [55,"Cs","세슘",6,1,"원자시계에 쓰이는 원소라, 시간이 지날수록 점점 강해져요"],
   [56,"Ba","바륨",6,2,""],
   [57,"La","란타넘",9,4,""],
   [58,"Ce","세륨",9,5,""],
@@ -697,7 +700,7 @@ let updatesPopupShown = false;  // 이번 접속에서 팝업을 띄웠는지 (�
 // ============================================================
 // 원소 6종 + 에이스를 숫자로 바꿔 뒤섞은 뒤 문자로 → 알아볼 수 없는 코드
 // 원소 기호를 고정 순서 배열의 인덱스로 (이 배열 순서만 유지하면 코드 안정)
-const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U","Ag","Pb","Es","Ar","B","I","F","Nd","Ir","Ti","Si","Zn"];
+const CODE_ELEMENTS = ["H","He","Li","C","N","O","Na","Mg","Al","P","Cl","K","Ca","Fe","Au","Hg","U","Ag","Pb","Es","Ar","B","I","F","Nd","Ir","Ti","Si","Zn","Cs"];
 // 코드에 쓸 문자 (헷갈리는 0 O 1 I L 뺌)
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 30자
 const CODE_SCRAMBLE = 7; // 뒤섞기용 값
@@ -751,8 +754,8 @@ function decodeDeck(code){
 }
 const GACHA_COST = 500;
 const CRYSTAL_FOR_ELEMENT = 10;
-const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500, 11:1100, 12:1200, 13:1300, 14:1400, 15:1500, 16:1500, 17:1600, 18:1600, 19:1700, 20:2000, 21:1600, 22:1600, 23:1600 };  // 첫 클리어 코인 (우상향)
-const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500, 11:350, 12:400, 13:450, 14:450, 15:500, 16:500, 17:550, 18:550, 19:550, 20:650, 21:550, 22:550, 23:550 }; // 반복 (첫의 1/3, 50단위)
+const STAGE_MOLE = { 1:300, 2:300, 3:400, 4:500, 5:600, 6:700, 7:800, 8:900, 9:1000, 10:1500, 11:1100, 12:1200, 13:1300, 14:1400, 15:1500, 16:1500, 17:1600, 18:1600, 19:1700, 20:2000, 21:1600, 22:1600, 23:1600, 24:1600 };  // 첫 클리어 코인 (우상향)
+const STAGE_MOLE_REPEAT = { 1:100, 2:100, 3:150, 4:150, 5:200, 6:250, 7:250, 8:300, 9:350, 10:500, 11:350, 12:400, 13:450, 14:450, 15:500, 16:500, 17:550, 18:550, 19:550, 20:650, 21:550, 22:550, 23:550, 24:550 }; // 반복 (첫의 1/3, 50단위)
 let reward = null, G = null, logs = [], busy = false;
 let sel = { hand:null, attacker:null, mode:null }; // mode: 'attack' | 'active'
 let stage = 1;        // '가': 지금 하는 판 (전투 시작이 따라감, 맵에서 고르면 바뀜)
@@ -786,8 +789,9 @@ const STAGES = {
   21: { hp:35, deck:["Cu","N","O","Fe","C","Si"],         miss:0.08, reward:null,  label:"스테이지 21" },
   22: { hp:35, deck:["Sr","Ag","Ir","Si","Al","Cl"],      miss:0.08, reward:null,  label:"스테이지 22" },
   23: { hp:35, deck:["Zn","N","Fe","P","He","Li"],         miss:0.08, reward:null,  label:"스테이지 23" },
+  24: { hp:35, deck:["Cs","N","O","Ca","K","Zn"],          miss:0.08, reward:null,  label:"스테이지 24" },
 };
-const MAX_STAGE = 23;
+const MAX_STAGE = 24;
 // 보스 2페이즈 설정
 const BOSS_PHASE2 = { hp:30, deck:["U","Hg","P","Mg","Cl","Au"], miss:0.13 };
 const BOSS_PHASE2_MAP = { 10: BOSS_PHASE2, 20: { hp:35, deck:["Ti","K","P","Ar","N","O"], miss:0.02 } };
@@ -942,7 +946,7 @@ function effAtk(card, field){
   let foeField = null;
   if(G){ if(field===G.me.field) foeField=G.en.field; else if(field===G.en.field) foeField=G.me.field; }
   const argonBlocked = foeField && foeField.some(c=>c.passive?.kind==="argon");
-  let a=card.atk;
+  let a=card.atk + (card.clockTicks||0);  // 원자시계(세슘) 성장분
   if(!argonBlocked){ field.forEach(c=>{ if(c.iid!==card.iid && c.passive?.kind==="allyAtkUp") a+=c.passive.value; }); }
   if(card.corrode){ a = Math.max(1, a - card.corrode); } // 부식: 공격력 깎임(최소 1)
   return a;
@@ -958,6 +962,17 @@ function platingReduce(card, dmg){
     return 0;
   }
   return dmg;
+}
+function tickClock(P){
+  // 원자시계(세슘): 주인의 턴이 끝날 때마다 공격력 +1, 카드당 최대 3번. 필드 떠나면 clockTicks도 같이 사라짐
+  if(!G || !P) return;
+  P.field.forEach(c=>{
+    if(c.passive?.kind==="clock" && c.curHp>0 && (c.clockTicks||0) < 3){
+      c.clockTicks = (c.clockTicks||0) + 1;
+      log(`⏱️ 세슘의 공격력이 올라갔어요! (⚔${effAtk(c, P.field)})`);
+      fx("⏱️ 세슘 +1", "#fbbf24");
+    }
+  });
 }
 function tickRegen(){
   if(!G) return;
@@ -1536,7 +1551,7 @@ function doExchange(key){
 // 새 공지 추가: 아래 배열 '맨 앞'에 { version, date, items:[{title, body}, ...] } 한 칸을 넣으면 됩니다.
 //   - 번호(1. 2. ...)는 자동으로 붙어요.  - body 안에서 \n 으로 줄바꿈해요(2~3줄 권장).
 // ============================================================
-const APP_VERSION = "1.2.0";                              // 게임 버전
+const APP_VERSION = "1.3.0";                              // 게임 버전
 // 버전 비교: a >= b ? 숫자 부분을 나눠서 비교 (1.1.0, 1.10.0 도 올바르게)
 function verGE(a, b){
   const pa=String(a).split('.').map(n=>parseInt(n,10)||0), pb=String(b).split('.').map(n=>parseInt(n,10)||0);
@@ -1545,6 +1560,10 @@ function verGE(a, b){
 }
 const UPDATES_ENABLED = verGE(APP_VERSION, "1.0.0");      // '업데이트 소식'은 1.0.0부터 표시
 const UPDATES = [
+  { version:"1.3.0", date:"2026-11-27", items:[
+    { title:"신규 원소 1종 추가", body:"세슘: 원자시계\n자세한 설명은 인게임에서 확인하실 수 있습니다." },
+    { title:"신규 스테이지 1개", body:"24 스테이지 추가 (23스테이지 클리어 후 도전 가능)" },
+  ]},
   { version:"1.2.0", date:"2026-11-20", items:[
     { title:"신규 원소 1종 추가", body:"아연: 도금\n자세한 설명은 인게임에서 확인하실 수 있습니다." },
     { title:"신규 스테이지 1개", body:"23 스테이지 추가 (22스테이지 클리어 후 도전 가능)" },
@@ -1640,11 +1659,87 @@ function showSettings(){
         <div style="font-size:11px; color:var(--ink-soft); margin-top:8px; text-align:left;">
           초기화하면 모은 원소·덱·진행이 모두 사라져요
         </div>
+        <!-- 명령 입력 -->
+        ${recovSectionHTML()}
       </div>
       <div style="font-size:11px; color:var(--ink-soft); margin-top:16px; text-align:center;">이 게임은 허락 없이 복사하거나 다시 올리면 안 돼요.</div>
       <button class="btn-primary" style="margin-top:14px;" onclick="showTitle()">← 돌아가기</button>
     </div>`;
 }
+/* ===== 명령 입력 (설정) ===== */
+let recovPending = null;
+function recovSectionHTML(){
+  if(recovPending){
+    return `<div class="set-divider"></div>
+    <div style="text-align:left;">
+      <div style="font-weight:700; margin-bottom:6px;">🛠️ 명령 입력</div>
+      <div style="margin-bottom:6px; font-size:13px;">비밀번호를 입력하세요</div>
+      <input id="recov-pw" type="password" autocomplete="off" style="width:100%; padding:9px; border-radius:8px; border:1px solid #475569; background:#1e293b; color:#e2e8f0; box-sizing:border-box;" />
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn-primary" style="flex:1;" onclick="recovPwConfirm()">확인</button>
+        <button class="btn-ghost" style="flex:1;" onclick="recovCancel()">취소</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="set-divider"></div>
+  <div style="text-align:left;">
+    <div style="font-weight:700; margin-bottom:6px;">🛠️ 명령 입력</div>
+    <input id="recov-cmd" autocomplete="off" placeholder="명령 입력" style="width:100%; padding:9px; border-radius:8px; border:1px solid #475569; background:#1e293b; color:#e2e8f0; box-sizing:border-box;" />
+    <button class="btn-primary" style="margin-top:8px; width:100%;" onclick="recovSubmit()">확인</button>
+  </div>`;
+}
+function recovJosa(w){ const c=w.charCodeAt(w.length-1); if(c<0xAC00||c>0xD7A3) return "을"; return ((c-0xAC00)%28)!==0 ? "을":"를"; }
+function recovFindElement(input){
+  for(const k in ELEMENTS){
+    const nm = ELEMENTS[k].name;
+    if(nm===input || OLD_NAMES[nm]===input) return k;
+  }
+  return null;
+}
+function recovSubmit(){
+  const raw = (document.getElementById("recov-cmd") ? document.getElementById("recov-cmd").value : "").trim();
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if(parts.length < 2){ toast("형식이 맞지 않아요"); return; }
+  const val = parts[parts.length-1];
+  const cat = parts.slice(0, parts.length-1).join(" ");
+  let kind = null;
+  if(cat==="코인") kind="coin";
+  else if(cat==="에너지 결정") kind="crystal";
+  else if(cat==="원소") kind="element";
+  if(!kind){ toast("형식이 맞지 않아요"); return; }
+  if(kind==="coin" || kind==="crystal"){
+    if(!/^\d+$/.test(val) || parseInt(val,10) < 1){ toast("형식이 맞지 않아요"); return; }
+    recovPending = { kind, n: parseInt(val,10) };
+  } else {
+    recovPending = { kind, name: val };
+  }
+  showSettings();
+  setTimeout(()=>{ const p=document.getElementById("recov-pw"); if(p) p.focus(); }, 30);
+}
+function recovCancel(){ recovPending = null; showSettings(); }
+function recovPwConfirm(){
+  const pw = (document.getElementById("recov-pw") ? document.getElementById("recov-pw").value : "").trim().toLowerCase().replace(/\s+/g,"").normalize("NFC");
+  const pend = recovPending;
+  recovPending = null;
+  if(pw !== "elementcardgame" && pw !== "디드둣ㅊㅁㄱㅇㅎ믇".normalize("NFC")){ toast("비밀번호가 틀렸어요"); showSettings(); return; }
+  if(!pend){ showSettings(); return; }
+  if(pend.kind==="coin"){
+    if(mole + pend.n >= COIN_WARN){ toast("코인이 너무 많아져요"); showSettings(); return; }
+    mole += pend.n; saveGame(); toast(`코인 ${pend.n}개를 받았어요`);
+  } else if(pend.kind==="crystal"){
+    if(crystal + pend.n > 999){ toast("에너지 결정이 너무 많아져요"); showSettings(); return; }
+    crystal += pend.n; saveGame(); toast(`에너지 결정 ${pend.n}개를 받았어요`);
+  } else if(pend.kind==="element"){
+    const key = recovFindElement(pend.name);
+    if(!key){ toast("없는 원소예요"); showSettings(); return; }
+    if(owned.includes(key)){ toast("이미 가지고 있어요"); showSettings(); return; }
+    owned.push(key); saveGame();
+    const nm = elName(ELEMENTS[key].name);
+    toast(`${nm}${recovJosa(nm)} 받았어요!`);
+  }
+  showSettings();
+}
+/* ===== 명령 입력 끝 ===== */
 function toggleSound(){
   soundOn = !soundOn;
   if(soundOn) SFX.click();
@@ -3163,7 +3258,7 @@ async function endTurn(){
   if(G.pvp){ if(G.role==="guest"){ pvpSendAction({kind:"endTurn"}); } else { pvpEndTurn("me"); } return; }
   { const b = tutoBlock("endTurn"); if(b){ toast(b); return; } }
   sel={hand:null,attacker:null,mode:null}; G.me.hbombReady=false; log("— 당신의 턴 종료 —");
-  tickRegen();
+  tickRegen(); tickClock(G.me);
   G.turn="en"; busy=true; renderBattle();
   fx("상대 턴", "#ef4444");
   try{
@@ -3532,7 +3627,7 @@ async function versusEnemyTurn(){
     else { c.canAttack=true; c.hasAttacked=false; }
   });
   G.turn="me"; G.turnCount++; busy=false;
-  tickRegen();
+  tickRegen(); tickClock(G.en);
   G.me.field.forEach(c=>{
     if(c.active?.kind==="battery" && !c.batteryDone){
       c.chargeTick = (c.chargeTick||0) + 1;
@@ -3905,7 +4000,7 @@ async function enemyTurn(){
     else { c.canAttack=true; c.hasAttacked=false; }
   });
   G.turn="me"; G.turnCount++; busy=false;
-  tickRegen();
+  tickRegen(); tickClock(G.en);
   // 리튬 충전: 내 필드의 리튬이 2턴마다 +1 (최대 3), 방출한 리튬은 충전 안 함
   G.me.field.forEach(c=>{
     if(c.active?.kind==="battery" && !c.batteryDone){
@@ -4708,7 +4803,7 @@ function pvpEndTurn(side){
   if(PVP.role!=="host") return;
   sel={hand:null,attacker:null,mode:null};
   G[side].hbombReady=false;
-  tickRegen();
+  tickRegen(); tickClock(G[side]);
   const next = side==="me"?"en":"me";
   G.turn=next; G.turnCount++;
   pvpTurnStartDamage(next);   // 독·축적독·방사능 지연 피해 (스테이지와 동일 순서)
