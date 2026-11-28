@@ -1551,7 +1551,7 @@ function doExchange(key){
 // 새 공지 추가: 아래 배열 '맨 앞'에 { version, date, items:[{title, body}, ...] } 한 칸을 넣으면 됩니다.
 //   - 번호(1. 2. ...)는 자동으로 붙어요.  - body 안에서 \n 으로 줄바꿈해요(2~3줄 권장).
 // ============================================================
-const APP_VERSION = "1.3.0";                              // 게임 버전
+const APP_VERSION = "1.3.1";                              // 게임 버전
 // 버전 비교: a >= b ? 숫자 부분을 나눠서 비교 (1.1.0, 1.10.0 도 올바르게)
 function verGE(a, b){
   const pa=String(a).split('.').map(n=>parseInt(n,10)||0), pb=String(b).split('.').map(n=>parseInt(n,10)||0);
@@ -2888,6 +2888,7 @@ function useActive(iid){
   if(act.energy > G.me.energy){ toast(`에너지가 부족해요 (필요 ⚡${act.energy})`); return; }
   if(act.kind==="aoe"){
     if(G.en.field.length===0){ toast("폭발시킬 상대 카드가 없어요"); return; }
+    if(pvpGActive("aoe", iid)) return;
     G.me.energy -= act.energy;
     card.usedActive = true;
     fx(`💥 ${elName(card.name)} 물 폭발!`, "#fb923c"); SFX.explode();
@@ -2904,12 +2905,14 @@ function useActive(iid){
   } else if(act.kind==="stun"){
     // 마그네슘 섬광: 상대 카드 전체 다음 턴 공격 불가
     if(G.en.field.length===0){ toast("섬광을 비출 상대 카드가 없어요"); return; }
+    if(pvpGActive("stun", iid)) return;
     G.me.energy -= act.energy;
     card.usedActive = true;
     G.en.field.forEach(t=>{ t.flashStunned = true; });
     fx(`✨ ${elName(card.name)} 섬광!`, "#facc15"); SFX.explode();
     log(`✨ ${elName(card.name)} 섬광! 상대 카드 전체가 다음 턴 공격할 수 없어요`);
   } else if(act.kind==="poison"){
+    if(pvpGActive("poison", iid)) return;
     G.me.energy -= act.energy;
     card.usedActive = true;
     card.poisonOn = true;   // 이 염소가 상대에게 독을 켠 주체
@@ -2919,6 +2922,7 @@ function useActive(iid){
     // 리튬 방출: 충전한 만큼 에너지 획득, 이후 충전 정지
     const charged = card.charge || 0;
     if(charged <= 0){ toast("아직 충전된 에너지가 없어요"); return; }
+    if(pvpGActive("battery", iid)) return;
     G.me.energy += charged;   // 최대치(6) 초과 허용
     card.charge = 0;
     card.batteryDone = true;  // 이후 충전 안 함
@@ -2952,6 +2956,7 @@ function healTarget(iid){
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
   const maxHp = tgt.maxHp||tgt.hp;
   if(tgt.curHp>=maxHp){ toast("이미 체력이 가득해요"); return; }
+  if(pvpGActive("heal", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   tgt.curHp = Math.min(maxHp, tgt.curHp + src.active.value);
   log(`💚 ${elName(src.name)}이(가) ${elName(tgt.name)}의 체력을 회복시켰어요 (❤${tgt.curHp})`);
@@ -2964,6 +2969,7 @@ function cleanseTarget(iid){
   const tgt = G.me.field.find(c=>c.iid===iid);
   if(!src||!tgt) return;
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("cleanse", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   applyCleanse(tgt);
   src.cleanseTurn = G.turnCount;
@@ -2979,6 +2985,7 @@ function plateTarget(iid){
   if(tgt.iid===src.iid){ toast("도금은 다른 아군에게만 쓸 수 있어요"); return; }
   if(tgt.plated){ toast("이미 도금돼 있어요"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("plate", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   tgt.plated = true;
   src.plateTurn = G.turnCount;
@@ -2995,6 +3002,7 @@ function corrodeTarget(iid){
   if(tgt.passive?.kind==="immune"){ toast("금에는 부식이 안 통해요"); return; }
   if(effAtk(tgt, G.en.field) <= 1){ toast("이미 공격력이 1이에요"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("corrode", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   tgt.corrode = (tgt.corrode||0) + src.active.value;
   src.corrodeTurn = G.turnCount;
@@ -3012,6 +3020,7 @@ function focusTarget(iid){
   const cons = G.me.field.filter(c=> c.canAttack && !c.hasAttacked && !c.flashStunned);
   const dmg = cons.reduce((s,c)=>s+effAtk(c,G.me.field),0);
   if(dmg<=0){ toast("모을 공격력이 없어요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("focus", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   cons.forEach(c=>{ c.hasAttacked=true; });
   src.focusTurn = G.turnCount;
@@ -3079,6 +3088,7 @@ function reflectTarget(iid){
   if(!src||!tgt) return;
   if(!tauntTargets(G.en.field).map(x=>x.iid).includes(iid)){ toast("자석 방패! 철을 먼저 노려야 해요 🧲"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("reflect", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   doReflect(src, tgt, G.en, "상대", "en");
   sel={hand:null,attacker:null,mode:null};
@@ -3097,6 +3107,7 @@ function reflectFace(){
   if(!src) return;
   if(G.en.field.length>0){ toast("상대 카드가 있으면 카드에 반사해요"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("reflect", sel.srcIid, null, true)) return;
   G.me.energy -= src.active.energy;
   doReflect(src, null, G.en, "상대", "en");
   sel={hand:null,attacker:null,mode:null};
@@ -3119,6 +3130,7 @@ function leadTarget(iid){
   if(isImmuneTo(tgt,"독")){ toast("면역 상태예요"); return; }
   if(tgt.leadStacks>0){ toast("이미 독이 쌓이고 있는 상대예요"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("leadPoison", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   markLead(src, tgt, G.en);
   fx(`☠️ ${elName(tgt.name)}에 축적독!`, "#94a3b8");
@@ -3163,6 +3175,7 @@ function blastTarget(iid){
   // 발화도 도발(철) 지킴 — 철 있으면 철부터
   if(!tauntTargets(G.en.field).map(x=>x.iid).includes(iid)){ toast("자석 방패! 철을 먼저 노려야 해요 🧲"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("blast", sel.srcIid, iid)) return;
   G.me.energy -= src.active.energy;
   src.usedActive = true;
   const dmg = src.active.value;
@@ -3193,6 +3206,7 @@ function blastFace(){
   if(!src) return;
   if(G.en.field.length>0){ toast("상대 카드를 먼저 없애야 해요"); return; }
   if(src.active.energy > G.me.energy){ toast("에너지가 부족해요"); sel={hand:null,attacker:null,mode:null}; renderBattle(); return; }
+  if(pvpGActive("blast", sel.srcIid, null, true)) return;
   G.me.energy -= src.active.energy;
   src.usedActive = true;
   const dmg = src.active.value;
@@ -4765,6 +4779,7 @@ function pvpHostApply(a){
   if(a.kind==="summon") pvpApplySummon("en", a.iid);
   else if(a.kind==="attackUnit") pvpApplyAttackUnit("en", a.attacker, a.target);
   else if(a.kind==="attackFace") pvpApplyAttackFace("en", a.attacker);
+  else if(a.kind==="active") pvpApplyActive("en", a);
   else if(a.kind==="endTurn"){ pvpEndTurn("en"); return; }
   renderBattle();
   checkEnd();
@@ -4798,6 +4813,127 @@ function pvpApplyAttackFace(side, aIid){
   SFX.pierce(); aCard.hasAttacked=true;
   if(aCard.key==="H") hbombTrigger(A, side==="me"?"당신":"상대");
   flashHp(DS);
+}
+/* ---------- 액티브 스킬: 게스트→호스트 전송 & 호스트 권위 적용 ---------- */
+function pvpGActive(akind, srcIid, tIid, face){
+  // 게스트일 때만: 적용하지 말고 "스킬+카드+대상"을 호스트로 보냄 (소환·공격과 같은 구조)
+  if(!(G && G.pvp && G.role==="guest")) return false;
+  pvpSendAction({ kind:"active", akind:akind, iid:srcIid, tIid:tIid, face:face });
+  return true;
+}
+function pvpApplyActive(side, a){
+  // 호스트가 자기 폰 상태로 다시 검증하고 적용. 하나라도 안 맞으면 조용히 무시.
+  if(PVP.role!=="host" || !G || !a) return;
+  if(G.turn!==side) return;                                   // (3) 그 쪽 차례가 아니면 무시
+  const A=G[side], DS=(side==="me"?"en":"me"), D=G[DS];
+  const actPre=(side==="en")?"상대 ":"";
+  const defName=(side==="en")?"당신":"상대";
+  const card=A.field.find(c=>c.iid===a.iid);
+  if(!card || !card.active || card.active.kind!==a.akind) return;  // 카드 없음/종류 불일치
+  const act=card.active, kind=act.kind;
+  if(kind!=="battery" && !card.canAttack) return;             // 소환 멀미(배터리는 예외)
+  if((kind==="aoe"||kind==="stun"||kind==="poison"||kind==="blast") && card.usedActive) return; // 1회성 재사용
+  if(kind==="battery" && card.batteryDone) return;
+  const turnKey={reflect:"reflectTurn",leadPoison:"leadTurn",cleanse:"cleanseTurn",corrode:"corrodeTurn",focus:"focusTurn",plate:"plateTurn"}[kind];
+  if(turnKey && card[turnKey]===G.turnCount) return;          // 한 턴에 한 번
+  if(kind!=="battery" && act.energy > A.energy) return;       // 에너지 부족
+  const findMy=iid=>A.field.find(c=>c.iid===iid);
+  const findOpp=iid=>D.field.find(c=>c.iid===iid);
+
+  if(kind==="aoe"){
+    if(D.field.length===0) return;
+    A.energy-=act.energy; card.usedActive=true;
+    fx(`💥 ${actPre}${elName(card.name)} 물 폭발!`, "#fb923c"); SFX.explode();
+    log(`💥 ${actPre}${elName(card.name)} 물 폭발! ${defName} 전체에 ${act.value} 데미지`);
+    [...D.field].forEach(t=>{ const _pd=platingReduce(t,act.value); t.curHp-=_pd; solarGain(t,D,_pd); if(t.curHp<=0){ log(`☠️ ${defName}의 ${elName(t.name)} 파괴됨!`); onCardDeath(t,D,null); } });
+    D.field=D.field.filter(t=>t.curHp>0);
+  } else if(kind==="stun"){
+    if(D.field.length===0) return;
+    A.energy-=act.energy; card.usedActive=true;
+    D.field.forEach(t=>{ t.flashStunned=true; });
+    fx(`✨ ${actPre}${elName(card.name)} 섬광!`, "#facc15"); SFX.explode();
+    log(`✨ ${actPre}${elName(card.name)} 섬광! ${defName} 카드 전체가 다음 턴 공격할 수 없어요`);
+  } else if(kind==="poison"){
+    if(poisonActive(A.field)) return;
+    A.energy-=act.energy; card.usedActive=true; card.poisonOn=true;
+    fx(`☠️ ${actPre}${elName(card.name)} 독가스!`, "#4ade80"); SFX.poison();
+    log(`☠️ ${actPre}${elName(card.name)} 독가스! ${defName} 전체가 매 턴 체력이 ${act.value}씩 줄어요`);
+  } else if(kind==="battery"){
+    const charged=card.charge||0; if(charged<=0) return;
+    A.energy+=charged; card.charge=0; card.batteryDone=true; card.usedActive=true;
+    fx(`🔋 ${actPre}${elName(card.name)} 방출! +${charged}`, "#fbbf24"); SFX.summon();
+    log(`🔋 ${actPre}${elName(card.name)}이(가) 에너지 ${charged}를 방출! (⚡${A.energy})`);
+  } else if(kind==="heal"){
+    const tgt=findMy(a.tIid); if(!tgt) return;
+    const mx=tgt.maxHp||tgt.hp; if(tgt.curHp>=mx) return;
+    A.energy-=act.energy; tgt.curHp=Math.min(mx, tgt.curHp+act.value);
+    fx(`💚 ${elName(tgt.name)} 회복!`, "#4ade80"); SFX.summon();
+    log(`💚 ${actPre}${elName(card.name)}이(가) ${elName(tgt.name)}의 체력을 회복시켰어요 (❤${tgt.curHp})`);
+  } else if(kind==="cleanse"){
+    const tgt=findMy(a.tIid); if(!tgt) return;
+    A.energy-=act.energy; applyCleanse(tgt); card.cleanseTurn=G.turnCount;
+    fx(`🧼 ${elName(tgt.name)} 소독!`, "#38bdf8"); SFX.summon();
+    log(`🧪 ${actPre}${elName(card.name)} 소독! ${elName(tgt.name)}의 독과 방사능을 없애고 2턴 동안 막아요`);
+  } else if(kind==="plate"){
+    const tgt=findMy(a.tIid); if(!tgt || tgt.iid===card.iid || tgt.plated) return;
+    A.energy-=act.energy; tgt.plated=true; card.plateTurn=G.turnCount;
+    fx(`🛡️ ${elName(tgt.name)} 도금!`, "#60a5fa"); SFX.summon();
+    log(`🛡️ ${actPre}${elName(card.name)} 도금! ${elName(tgt.name)}이(가) 피해를 한 번 막을 수 있어요`);
+  } else if(kind==="corrode"){
+    const tgt=findOpp(a.tIid); if(!tgt) return;
+    if(!tauntTargets(D.field).map(x=>x.iid).includes(tgt.iid)) return;
+    if(tgt.passive?.kind==="immune") return;
+    if(effAtk(tgt,D.field)<=1) return;
+    A.energy-=act.energy; tgt.corrode=(tgt.corrode||0)+act.value; card.corrodeTurn=G.turnCount;
+    fx(`🧪 ${elName(tgt.name)} 부식!`, "#a3e635"); SFX.explode();
+    log(`🧪 ${actPre}${elName(card.name)} 부식! ${elName(tgt.name)}의 공격력이 깎였어요 (⚔${effAtk(tgt,D.field)})`);
+  } else if(kind==="focus"){
+    const tgt=findOpp(a.tIid); if(!tgt) return;
+    if(!tauntTargets(D.field).map(x=>x.iid).includes(tgt.iid)) return;
+    const cons=A.field.filter(c=> c.canAttack && !c.hasAttacked && !c.flashStunned);
+    const dmg=cons.reduce((s,c)=>s+effAtk(c,A.field),0); if(dmg<=0) return;
+    A.energy-=act.energy; cons.forEach(c=>{ c.hasAttacked=true; }); card.focusTurn=G.turnCount;
+    fx(`💠 ${actPre}${elName(card.name)} 응집 ${dmg}!`, "#60a5fa"); SFX.explode();
+    log(`💠 ${actPre}${elName(card.name)} 응집! 아군의 공격력을 모아 ${elName(tgt.name)}에게 ${dmg} 피해`);
+    const before=tgt.curHp; const _pd=platingReduce(tgt,dmg); tgt.curHp-=_pd; solarGain(tgt,D,_pd);
+    if(tgt.curHp<=0){
+      if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){ tgt.lastStandUsed=true; tgt.curHp=1; log(`✨ 불활성! ${elName(tgt.name)}이(가) 버텼어요`); }
+      else { log(`☠️ ${defName}의 ${elName(tgt.name)} 파괴됨!`); onCardDeath(tgt,D,card); D.field=D.field.filter(c=>c.iid!==tgt.iid); const ov=boronReduce(dmg-before, D.field); if(ov>0){ D.hp-=ov; log(`➡️ 관통! 넘친 ${ov} 데미지가 본체로`); setTimeout(()=>flashHp(DS),60);} }
+    }
+  } else if(kind==="reflect"){
+    syncReflect();
+    if((card.reflectStore||0)<=0) return;
+    if(a.face){ if(D.field.length>0) return; A.energy-=act.energy; doReflect(card,null,D,defName,DS); }
+    else { const tgt=findOpp(a.tIid); if(!tgt) return; if(!tauntTargets(D.field).map(x=>x.iid).includes(tgt.iid)) return; A.energy-=act.energy; doReflect(card,tgt,D,defName,DS); }
+  } else if(kind==="leadPoison"){
+    const tgt=findOpp(a.tIid); if(!tgt) return;
+    if(!tauntTargets(D.field).map(x=>x.iid).includes(tgt.iid)) return;
+    if(isImmuneTo(tgt,"독")) return;
+    if(tgt.leadStacks>0) return;
+    A.energy-=act.energy; markLead(card,tgt,D);
+    fx(`☠️ ${elName(tgt.name)}에 축적독!`, "#94a3b8");
+    log(`☠️ ${actPre}${elName(card.name)} 축적독! ${elName(tgt.name)}에게 독이 쌓이기 시작해요`);
+  } else if(kind==="blast"){
+    const dmg=act.value;
+    if(a.face){
+      if(D.field.length>0) return;
+      A.energy-=act.energy; card.usedActive=true; D.hp-=dmg;
+      fx(`🔥 본체에 발화 ${dmg}!`, "#fb923c"); SFX.explode();
+      log(`🔥 ${actPre}${elName(card.name)} 발화! ${defName} 본체에 ${dmg} 피해`);
+      setTimeout(()=>flashHp(DS),60);
+    } else {
+      const tgt=findOpp(a.tIid); if(!tgt) return;
+      if(!tauntTargets(D.field).map(x=>x.iid).includes(tgt.iid)) return;
+      A.energy-=act.energy; card.usedActive=true;
+      fx(`🔥 ${actPre}${elName(card.name)} 발화!`, "#fb923c"); SFX.explode();
+      log(`🔥 ${actPre}${elName(card.name)} 발화! ${elName(tgt.name)}에게 ${dmg} 피해`);
+      const before=tgt.curHp; const _pd=platingReduce(tgt,dmg); tgt.curHp-=_pd; solarGain(tgt,D,_pd);
+      if(tgt.curHp<=0){
+        if(tgt.passive?.kind==="lastStand" && !tgt.lastStandUsed){ tgt.lastStandUsed=true; tgt.curHp=1; log(`✨ 불활성! ${elName(tgt.name)}이(가) 버텼어요`); }
+        else { log(`☠️ ${defName}의 ${elName(tgt.name)} 파괴됨!`); onCardDeath(tgt,D,card); D.field=D.field.filter(c=>c.iid!==tgt.iid); const ov=boronReduce(dmg-before,D.field); if(ov>0){ D.hp-=ov; log(`➡️ 관통! 넘친 ${ov} 데미지가 본체로`);} }
+      }
+    }
+  } else { return; }
 }
 function pvpEndTurn(side){
   if(PVP.role!=="host") return;
